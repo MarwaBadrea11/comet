@@ -1,0 +1,106 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
+import { Button } from '../ui/Button'
+import { motionVariants } from '../../lib/theme'
+
+const STEPS = [
+  { phase: '01', title: 'Connect with the', accent: 'Universe.', body: 'The celestial curator orchestrates your digital existence, weaving threads of connection across infinite social galaxies.' },
+  { phase: '02', title: 'Curate your', accent: 'Cosmos.', body: 'Stage your content like a high-end gallery. Every post is a celestial event, every interaction a constellation.' },
+  { phase: '03', title: 'Build your', accent: 'Orbit.', body: 'Grow your inner circle with people who resonate with your frequency. Quality over quantity, always.' },
+  { phase: '04', title: 'Launch your', accent: 'Legacy.', body: 'Your perspective isn\'t just content — it\'s a signal that travels across the digital void forever.' },
+]
+
+export function OnboardingScreen() {
+  const navigate = useNavigate()
+  const [step, setStep] = useState(0)
+  const current = STEPS[step]
+
+  const next = () => step < STEPS.length - 1 ? setStep(s => s + 1) : navigate('/home')
+
+  return (
+    <div className="min-h-screen flex w-full relative bg-surface overflow-hidden">
+      {/* Left visual panel */}
+      <section className="hidden lg:flex lg:w-1/2 h-screen relative items-center justify-center bg-surface-container-low overflow-hidden">
+        <div className="absolute top-12 left-12 z-20">
+          <span className="text-2xl font-bold bg-gradient-to-r from-[#6B46C0] to-[#00D4FF] bg-clip-text text-transparent font-headline tracking-tighter">Comet</span>
+        </div>
+        <div className="relative z-10 w-full max-w-lg aspect-square p-16">
+          <div className="w-full h-full rounded-[3rem] bg-gradient-to-br from-primary/20 to-[#00D4FF]/20 shadow-[0_20px_40px_rgba(107,70,192,0.1)] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[8rem] text-primary/30">public</span>
+          </div>
+          {/* Floating card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="absolute -bottom-8 -right-8 bg-white/70 backdrop-blur-2xl p-6 rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] border border-outline-variant/15 max-w-xs"
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-10 h-10 rounded-full bg-[#00D4FF]/20 flex items-center justify-center text-[#00677e]">
+                <span className="material-symbols-outlined text-xl">hub</span>
+              </div>
+              <span className="font-headline font-bold text-sm">Active Nodes</span>
+            </div>
+            <p className="text-on-surface-variant text-sm leading-relaxed">Connecting over 2.4 million celestial entities across the digital void.</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Right interaction panel */}
+      <section className="w-full lg:w-1/2 min-h-screen bg-surface-container-lowest flex flex-col px-8 md:px-20 lg:px-24 py-16 justify-center relative">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/5 rounded-full blur-[100px]" />
+
+        <div className="max-w-xl space-y-12 relative z-10">
+          <div className="lg:hidden mb-8">
+            <span className="text-2xl font-bold bg-gradient-to-r from-[#6B46C0] to-[#00D4FF] bg-clip-text text-transparent font-headline tracking-tighter">Comet</span>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div key={step} {...motionVariants.slideUp} className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-low text-primary font-label text-xs font-semibold tracking-[0.05em] uppercase">
+                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                Phase {current.phase}: Initiation
+              </div>
+              <h2 className="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter text-on-surface leading-[1.1]">
+                {current.title}{' '}
+                <span className="bg-gradient-to-r from-primary to-[#00677e] bg-clip-text text-transparent">{current.accent}</span>
+              </h2>
+              <p className="text-xl text-on-surface-variant leading-relaxed max-w-lg">{current.body}</p>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="space-y-8">
+            <div className="flex items-center gap-6">
+              <Button variant="primary" size="lg" icon={<ArrowRight size={20} />} iconPosition="right" onClick={next}>
+                {step < STEPS.length - 1 ? 'Explore Next' : 'Enter Comet'}
+              </Button>
+              <button onClick={() => navigate('/home')} className="text-primary font-headline font-bold text-lg hover:opacity-70 transition-opacity">
+                Skip Intro
+              </button>
+            </div>
+
+            {/* Progress dots */}
+            <div className="flex items-center gap-3">
+              {STEPS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setStep(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-12 bg-primary shadow-[0_0_12px_rgba(107,70,192,0.4)]' : 'w-3 bg-surface-container-high'}`}
+                />
+              ))}
+              <span className="ml-4 font-label text-xs font-bold text-outline uppercase tracking-widest">Step {String(step + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-12 left-8 md:left-20 lg:left-24 text-outline/40 text-[0.65rem] font-label uppercase tracking-[0.2em] flex items-center gap-4">
+          <span>© 2024 Comet Labs</span>
+          <div className="w-1 h-1 rounded-full bg-outline/20" />
+          <span>Privacy Architecture</span>
+        </div>
+      </section>
+    </div>
+  )
+}
