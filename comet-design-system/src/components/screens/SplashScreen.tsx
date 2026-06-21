@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { motionVariants } from '../../lib/theme'
+import logoImg from '../../assets/logo.png'
 
 export function SplashScreen() {
   const navigate = useNavigate()
@@ -16,10 +17,9 @@ export function SplashScreen() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-12 py-8 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#6B46C0] to-[#00D4FF] rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(107,70,192,0.2)]">
-            <span className="material-symbols-outlined text-white text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>public</span>
+          <div className="w-[120px] h-[120px] rounded-full overflow-hidden">
+            <img src={logoImg} alt="Comet logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-headline font-extrabold text-2xl tracking-tighter text-on-surface">Comet</span>
         </div>
         <div className="flex items-center gap-10">
           <a className="text-sm font-label font-semibold tracking-widest text-on-surface-variant hover:text-primary transition-colors uppercase" href="#">Explore</a>
@@ -71,12 +71,12 @@ export function SplashScreen() {
             <span className="text-[10px] font-label font-bold tracking-[0.2em] text-primary uppercase">The New Standard for Curators</span>
           </div>
 
-          <h1 className="font-headline text-[3.5rem] md:text-[5.5rem] font-extrabold leading-[0.95] tracking-[-0.04em] mb-8">
+          <h1 className="font-headline text-[3.5rem] md:text-[5.5rem] font-extrabold leading-none tracking-[-0.04em] mb-0">
             Connect. Create.<br />
-            <span className="bg-gradient-to-r from-[#6B46C0] via-primary to-[#00D4FF] bg-clip-text text-transparent">Comet.</span>
+            <img src={logoImg} alt="Comet logo" className="inline-block object-contain -mt-24" style={{ height: '4em', width: 'auto' }} />
           </h1>
 
-          <p className="text-lg md:text-xl text-on-surface-variant max-w-xl mx-auto mb-12 leading-relaxed">
+          <p className="-mt-16 text-lg md:text-xl text-on-surface-variant max-w-xl mx-auto mb-8 leading-relaxed">
             Step into a digital gallery designed for depth. A space where your perspective isn't just content—it's a celestial event.
           </p>
 

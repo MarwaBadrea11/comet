@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { useSidebar } from '../../providers/SidebarProvider'
 import type { NavItem } from '../../types'
+import logoImg from '../../assets/logo.png'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Layout constants — exported so TopBar & AppShell stay in sync
@@ -203,18 +204,13 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
           collapsed ? 'justify-center' : 'justify-start gap-3 px-5',
         )}
       >
-        {/* Orb — always rendered, always the same size */}
-        <div
-          className="shrink-0 rounded-lg bg-gradient-to-br from-[#6B46C0] to-[#00D4FF] flex items-center justify-center shadow-[0_4px_14px_rgba(107,70,192,0.30)]"
-          style={{ width: 32, height: 32 }}
-        >
-          <span
-            className="material-symbols-outlined text-white select-none"
-            style={{ fontSize: 16, fontVariationSettings: "'FILL' 1", lineHeight: 1 }}
-          >
-            flare
-          </span>
-        </div>
+        {/* Logo image — always rendered, always the same size */}
+        <img
+          src={logoImg}
+          alt="Comet logo"
+          className="shrink-0 object-contain"
+          style={{ width: 120, height: 120 }}
+        />
 
         {/* Brand text — fades out when collapsed */}
         <motion.div
@@ -222,9 +218,6 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
           animate={collapsed ? 'collapsed' : 'expanded'}
           className="overflow-hidden min-w-0"
         >
-          <p className="text-[18px] font-headline font-extrabold bg-gradient-to-r from-[#6B46C0] to-[#00D4FF] bg-clip-text text-transparent leading-none whitespace-nowrap">
-            Comet
-          </p>
           <p className="text-[8.5px] font-label font-semibold tracking-[0.16em] uppercase text-on-surface-variant whitespace-nowrap mt-0.5">
             The Celestial Curator
           </p>

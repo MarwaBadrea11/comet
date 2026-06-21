@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { motionVariants } from '../../lib/theme'
+import logoImg from '../../assets/logo.png'
 
 const STEPS = [
   { phase: '01', title: 'Connect with the', accent: 'Universe.', body: 'The celestial curator orchestrates your digital existence, weaving threads of connection across infinite social galaxies.' },
@@ -24,7 +25,7 @@ export function OnboardingScreen() {
       {/* Left visual panel */}
       <section className="hidden lg:flex lg:w-1/2 h-screen relative items-center justify-center bg-surface-container-low overflow-hidden">
         <div className="absolute top-12 left-12 z-20">
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#6B46C0] to-[#00D4FF] bg-clip-text text-transparent font-headline tracking-tighter">Comet</span>
+          <img src={logoImg} alt="Comet logo" className="h-[120px] w-[120px] object-contain" />
         </div>
         <div className="relative z-10 w-full max-w-lg aspect-square p-16">
           <div className="w-full h-full rounded-[3rem] bg-gradient-to-br from-primary/20 to-[#00D4FF]/20 shadow-[0_20px_40px_rgba(107,70,192,0.1)] flex items-center justify-center">
@@ -54,7 +55,7 @@ export function OnboardingScreen() {
 
         <div className="max-w-xl space-y-12 relative z-10">
           <div className="lg:hidden mb-8">
-            <span className="text-2xl font-bold bg-gradient-to-r from-[#6B46C0] to-[#00D4FF] bg-clip-text text-transparent font-headline tracking-tighter">Comet</span>
+            <img src={logoImg} alt="Comet logo" className="h-[120px] w-[120px] object-contain" />
           </div>
 
           <AnimatePresence mode="wait">
