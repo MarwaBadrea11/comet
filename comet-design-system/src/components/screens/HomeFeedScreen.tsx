@@ -1,235 +1,470 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, MoreHorizontal, Rocket } from 'lucide-react'
+import { Heart, MessageCircle, MoreHorizontal, Plus, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2 } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { DropdownMenu } from '../ui/DropdownMenu'
+import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
+import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from '../../hooks/usePostsQuery'
+import { useAuthStore } from '../../stores/authStore'
+import { useQueryClient } from '@tanstack/react-query'
 
-const STORIES = [
-  { name: 'Elena',  avatar: 'https://i.pravatar.cc/80?img=47', viewed: false },
-  { name: 'Marcus', avatar: 'https://i.pravatar.cc/80?img=12', viewed: false },
-  { name: 'Julian', avatar: 'https://i.pravatar.cc/80?img=33', viewed: false },
-  { name: 'Sophia', avatar: 'https://i.pravatar.cc/80?img=25', viewed: false },
-  { name: 'Liam',   avatar: 'https://i.pravatar.cc/80?img=8',  viewed: true  },
-]
+import { CreateStoryModal } from './CreateStoryModal'
 
-const FEED = [
-  { id: 1, author: 'Elena Vane',   handle: 'Stellar Photographer', time: '2h ago', avatar: 'https://i.pravatar.cc/80?img=47', title: 'Synthetica: The Digital Frontier',              body: 'The evolution of generative aesthetics has reached a boiling point. Today we explore how neural networks are not just mimicking light, but reimagining the physics of color itself.', likes: '1.2k', comments: 84,  shares: 12, tag: 'Curated Art'  },
-  { id: 2, author: 'Marcus Sol',   handle: 'Architect & Visionary', time: '4h ago', avatar: 'https://i.pravatar.cc/80?img=12', title: 'Architecture for the Void: Lunar Habitats',     body: 'As we pivot toward permanent lunar settlements, the design language of gravity-neutral living space is being written in real time.',                                                  likes: '892',  comments: 56,  shares: 8,  tag: 'Architecture' },
-]
-
-const TRENDING = [
-  { tag: '#CelestialDesign',  desc: 'The rise of ethereal interfaces in 2024.',              count: '4.2k'  },
-  { tag: '#SyntheticaArt',    desc: 'Artists using the new Flux model for worldbuilding.',   count: '12.8k' },
-  { tag: '#MarsColonyOne',    desc: 'Updates from the Bradbury Base deployment.',            count: '894'   },
-  { tag: '#GlassMorphism',    desc: 'How transparency is changing mobile depth.',            count: '2.1k'  },
-]
+const COSMIC_EMOJIS = ['✨', '🚀', '🪐', '🌌', '☄️', '🔮', '💜', '😎', '😂', '🔥', '👀', '💯']
 
 export function HomeFeedScreen() {
   const navigate = useNavigate()
-  const [liked, setLiked] = useState<Record<number, boolean>>({})
+  const queryClient = useQueryClient()
+  const user = useAuthStore(s => s.user)
+
+  // ── States ────────────────────────────────────────────────────────────────
+  const [newPostContent, setNewPostContent] = useState('')
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [expandedCommentReplies, setExpandedCommentReplies] = useState<Record<string, boolean>>({})
+  
+  // 🌟 إضافة ستيت التحكم بمودال الستوري
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false)
+
+  // ── Local Storage Management ───────────────────────────────────────────────
+  const [allLocalPosts, setAllLocalPosts] = useState<any[]>(() => {
+    const saved = localStorage.getItem('comet_global_local_posts')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  const [allLocalStories, setAllLocalStories] = useState<any[]>(() => {
+    const saved = localStorage.getItem('comet_global_local_stories')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // ── API Hooks ──────────────────────────────────────────────────────────────
+  const { data: feed = [], isLoading } = useFeed()
+  const createPost = useCreatePost()
+  const reactToPost = useReactToPost()
+  const savePost = useSavePost()
+  const hidePost = useHidePost()
+
+  // ── Data Merging (Local + Server) ──────────────────────────────────────────
+  const currentAccountLocalPosts = allLocalPosts.filter((p: any) => p.userId === user?.id)
+  const serverPosts = feed.filter((p: any) => p.type === 'POST')
+  const posts = [
+    ...currentAccountLocalPosts, 
+    ...serverPosts.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
+  ]
+
+  const currentAccountLocalStories = allLocalStories.filter((s: any) => s.userId === user?.id)
+  const serverStories = feed.filter((p: any) => p.type === 'STORY')
+  const stories = [
+    ...currentAccountLocalStories,
+    ...serverStories.filter((ss: any) => !currentAccountLocalStories.some(ls => String(ls.id) === String(ss.id)))
+  ]
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem('comet_global_local_posts', JSON.stringify(allLocalPosts))
+  }, [allLocalPosts])
+
+  useEffect(() => {
+    localStorage.setItem('comet_global_local_stories', JSON.stringify(allLocalStories))
+  }, [allLocalStories])
+
+  useEffect(() => {
+    const handleGlobalPostsUpdate = () => {
+      const saved = localStorage.getItem('comet_global_local_posts')
+      if (saved) setAllLocalPosts(JSON.parse(saved))
+    }
+
+    const handleGlobalStoriesUpdate = () => {
+      const saved = localStorage.getItem('comet_global_local_stories')
+      if (saved) setAllLocalStories(JSON.parse(saved))
+    }
+
+    window.addEventListener('comet_posts_updated', handleGlobalPostsUpdate)
+    window.addEventListener('comet_stories_updated', handleGlobalStoriesUpdate)
+    
+    return () => {
+      window.removeEventListener('comet_posts_updated', handleGlobalPostsUpdate)
+      window.removeEventListener('comet_stories_updated', handleGlobalStoriesUpdate)
+    }
+  }, [])
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const toggleReplies = (commentId: string) => {
+    setExpandedCommentReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }))
+  }
+
+  const handleCreatePost = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPostContent.trim() || createPost.isPending) return
+    const pendingText = newPostContent.trim()
+
+    createPost.mutate(
+      { content: pendingText, visibility: 'PUBLIC' },
+      { 
+        onSuccess: (savedPost) => {
+          setNewPostContent('')
+          if (savedPost) {
+            setAllLocalPosts(prev => [{ ...savedPost, userId: user?.id, comments: [], reactions: [] }, ...prev])
+          } else {
+            const fallbackPost = {
+              id: `local-${Date.now()}`,
+              userId: user?.id,
+              content: pendingText,
+              type: 'POST',
+              createdAt: new Date().toISOString(),
+              user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+              reactions: [],
+              comments: [],
+              hashtags: []
+            }
+            setAllLocalPosts(prev => [fallbackPost, ...prev])
+          }
+          queryClient.invalidateQueries({ queryKey: ['feed'] }).catch(() => {})
+        },
+        onError: () => {
+          const fallbackPost = {
+            id: `local-${Date.now()}`,
+            userId: user?.id,
+            content: pendingText,
+            type: 'POST',
+            createdAt: new Date().toISOString(),
+            user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+            reactions: [],
+            comments: [],
+            hashtags: []
+          }
+          setAllLocalPosts(prev => [fallbackPost, ...prev])
+          setNewPostContent('')
+        }
+      },
+    )
+  }
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewPostContent(prev => prev + emoji)
+    setShowEmojiPicker(false)
+  }
+
+  const handleReact = (postId: string) => {
+    if (!user?.id) return
+    setAllLocalPosts(prev => prev.map(post => {
+      if (String(post.id) === postId) {
+        const hasReacted = post.reactions?.some((r: any) => r.userId === user.id)
+        const updatedReactions = hasReacted
+          ? post.reactions.filter((r: any) => r.userId !== user.id)
+          : [...(post.reactions || []), { id: `react-${Date.now()}`, userId: user.id }]
+        return { ...post, reactions: updatedReactions }
+      }
+      return post
+    }))
+    reactToPost.mutate({ postId: String(postId), userId: user.id, reactableType: 'POST', reactionType: 'LIKE' })
+  }
+
+  const handleSavePost = (postId: string) => {
+    savePost.mutate(String(postId), {
+      onSuccess: () => {
+        toast.success('Post saved successfully!')
+      },
+      onError: (err: any) => {
+        if (err.response?.status === 409) {
+          toast.warning('Post already saved')
+        } else {
+          toast.error('Failed to save post')
+        }
+      }
+    })
+  }
+
+  const handleHidePost = (postId: string) => {
+    hidePost.mutate(String(postId), {
+      onSuccess: () => {
+        // Remove from local state
+        setAllLocalPosts(prev => prev.filter(p => String(p.id) !== String(postId)))
+        toast.success('Post hidden from your feed')
+      },
+      onError: () => {
+        toast.error('Failed to hide post')
+      }
+    })
+  }
+
+  const handleSharePost = (postId: string) => {
+    // Copy link to clipboard
+    const link = `${window.location.origin}/post/${postId}`
+    navigator.clipboard.writeText(link).then(() => {
+      toast.success('Link copied to clipboard!')
+    }).catch(() => {
+      toast.error('Failed to copy link')
+    })
+  }
+
+  const handleAddComment = (e: React.FormEvent, postId: string) => {
+    e.preventDefault()
+    if (!commentText.trim() || !user) return
+    const newComment = {
+      id: `comment-${Date.now()}`,
+      content: commentText.trim(),
+      createdAt: new Date().toISOString(),
+      likes: [],
+      replies: [],
+      user: { name: user.name, avatar: user.avatar || '' }
+    }
+    setAllLocalPosts(prev => prev.map(post => {
+      if (String(post.id) === postId) return { ...post, comments: [...(post.comments || []), newComment] }
+      return post
+    }))
+    setCommentText('')
+  }
+
+  const avatarSeed = encodeURIComponent(user?.name ?? 'user')
 
   return (
-    // Responsive: single column on mobile, two-column on xl
-    <div className="flex flex-col xl:grid xl:grid-cols-12 min-h-screen">
+    <div className="min-h-screen bg-[#f8f9ff] py-4 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12 overflow-x-hidden select-none">
+      <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 lg:gap-12 items-start">
 
-      {/* ── Center feed ── */}
-      <div className="xl:col-span-8 px-4 sm:px-6 lg:px-10 xl:px-12 py-6 lg:py-10">
-        <div className="max-w-3xl mx-auto flex flex-col gap-10 lg:gap-16">
+        {/* ── Main column ── */}
+        <div className="w-full lg:col-span-2 space-y-6 md:space-y-8 overflow-hidden">
 
-          {/* Greeting */}
-          <motion.div {...motionVariants.fadeIn}>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-headline font-extrabold tracking-tighter text-on-surface mb-2">
-              Morning, Alex.
-            </h2>
-            <p className="text-base lg:text-lg text-on-surface-variant">
-              Here is what the universe has curated for you today.
-            </p>
-          </motion.div>
-
-          {/* Stories tray */}
-          <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-2 hide-scrollbar">
-            <div
-              className="flex flex-col items-center gap-2 shrink-0 cursor-pointer"
-              onClick={() => navigate('/stories')}
+          {/* ── Stories strip ── */}
+          <div className="flex gap-4 md:gap-5 overflow-x-auto pb-3 pt-1 no-scrollbar snap-x w-full">
+            
+            {/* زر إضافة ستوري جديدة */}
+            <div 
+              onClick={() => setIsStoryModalOpen(true)} 
+              className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
             >
-              <div className="relative w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-surface-container-high flex items-center justify-center border-2 border-dashed border-outline-variant/30">
-                <span className="material-symbols-outlined text-primary text-lg">add</span>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-sm">
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                  <Plus size={24} className="text-primary" />
+                </div>
               </div>
-              <span className="text-[9px] sm:text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                Your Story
-              </span>
+              <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-1.5">Add Story</span>
             </div>
-            {STORIES.map(s => (
-              <div
-                key={s.name}
-                className="flex flex-col items-center gap-2 shrink-0 cursor-pointer"
-                onClick={() => navigate('/stories')}
+
+            {/* عرض الستوريز */}
+            {stories.map(story => (
+              <div 
+                key={story.id} 
+                onClick={() => navigate('/stories')} 
+                className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
               >
-                <Avatar
-                  src={s.avatar}
-                  alt={s.name}
-                  size="lg"
-                  ring
-                  ringVariant={s.viewed ? 'viewed' : 'gradient'}
-                />
-                <span className={`text-[9px] sm:text-[10px] font-label font-bold uppercase tracking-widest ${s.viewed ? 'text-on-surface-variant' : 'text-primary'}`}>
-                  {s.name}
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-md">
+                  <img
+                    src={story.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(story.user?.name || 'User')}`}
+                    alt={story.user?.name}
+                    className="w-full h-full rounded-full object-cover border-2 border-white"
+                  />
+                </div>
+                <span className="text-[11px] md:text-xs font-bold text-on-surface mt-1.5 max-w-[65px] md:max-w-[80px] truncate">
+                  {story.user?.name || 'Anonymous'}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Feed items */}
-          <div className="flex flex-col gap-16 lg:gap-24">
-            {FEED.map((post, i) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.15 }}
-                className="relative group cursor-pointer"
-                onClick={() => navigate('/post/1')}
-              >
-                {/* Asymmetric avatar — hidden on very small screens */}
-                <div className="hidden sm:block absolute -left-4 lg:-left-6 -top-4 lg:-top-6 z-10">
-                  <Avatar src={post.avatar} alt={post.author} size="lg" />
-                </div>
-
-                <div className="bg-surface-container-lowest rounded-2xl lg:rounded-3xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] overflow-hidden transition-all duration-500 hover:shadow-[0_30px_60px_rgba(107,70,192,0.1)]">
-                  <div className="aspect-[16/9] sm:aspect-[16/10] bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-5xl lg:text-6xl text-primary/20">image</span>
+          {/* ── Create Post Box ── */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] p-4 md:p-6 border border-white/60 shadow-sm">
+            <form onSubmit={handleCreatePost} className="space-y-4">
+              <div className="flex gap-3 md:gap-4 items-start">
+                <Avatar src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`} alt="Me" size="sm" className="md:w-12 md:h-12" />
+                <textarea
+                  value={newPostContent}
+                  onChange={e => setNewPostContent(e.target.value)}
+                  placeholder="Share your celestial thoughts..."
+                  className="w-full bg-transparent border-none resize-none focus:outline-none text-on-surface placeholder-on-surface-variant/50 pt-1.5 min-h-[60px] md:min-h-[80px] text-sm md:text-base"
+                />
+              </div>
+              <div className="h-px bg-outline-variant/20" />
+              <div className="flex justify-between items-center">
+                <div className="flex gap-0.5 md:gap-1 text-on-surface-variant/70 relative items-center">
+                  <button type="button" className="p-2 hover:bg-surface rounded-xl transition-colors hover:text-primary"><Image size={20} /></button>
+                  <div className="relative">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={`p-2 hover:bg-surface rounded-xl transition-colors hover:text-primary ${showEmojiPicker ? 'text-primary bg-surface/80' : ''}`}
+                    >
+                      <Smile size={20} />
+                    </button>
+                    <AnimatePresence>
+                      {showEmojiPicker && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-0 mb-3 p-2 bg-white/95 backdrop-blur-md border border-outline-variant/20 rounded-2xl shadow-xl z-50 grid grid-cols-4 gap-1.5 w-44"
+                          >
+                            {COSMIC_EMOJIS.map(emoji => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => handleEmojiSelect(emoji)}
+                                className="text-lg hover:bg-primary/10 p-1.5 rounded-xl transition-all active:scale-90"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <div className="p-5 sm:p-6 lg:p-8">
-                    {/* Mobile: show avatar inline */}
-                    <div className="flex items-center gap-3 mb-3 sm:hidden">
-                      <Avatar src={post.avatar} alt={post.author} size="sm" />
-                      <div>
-                        <p className="text-sm font-bold text-on-surface">{post.author}</p>
-                        <p className="text-[10px] text-on-surface-variant">{post.time}</p>
-                      </div>
-                    </div>
+                </div>
+                <Button type="submit" disabled={createPost.isPending || !newPostContent.trim()} className="px-4 md:px-6 h-9 md:h-11 rounded-xl shadow-md bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white hover:opacity-90">
+                  {createPost.isPending ? 'Launching...' : 'Launch'}
+                </Button>
+              </div>
+            </form>
+          </div>
 
-                    <div className="flex justify-between items-start mb-3 lg:mb-4">
-                      <div className="sm:ml-10 lg:ml-12">
-                        <h3 className="text-lg sm:text-xl lg:text-2xl font-headline font-bold text-on-surface mb-1">
-                          {post.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-[10px] font-label font-semibold text-primary uppercase tracking-widest">
-                          <span>{post.tag}</span>
-                          <span className="w-1 h-1 bg-primary/30 rounded-full" />
-                          <span>{post.time}</span>
+          {/* ── Loading State ── */}
+          {isLoading && posts.length === 0 && (
+            <div className="text-center py-16 space-y-4">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-on-surface-variant font-semibold">Traversing the cosmos...</p>
+            </div>
+          )}
+
+          {/* ── Feed List ── */}
+          {posts.length > 0 && (
+            <div className="space-y-4 md:space-y-6">
+              {posts.map(post => {
+                const isLiked = post.reactions?.some((r: any) => r.userId === user?.id)
+                const isCommentSectionOpen = activeCommentPostId === String(post.id)
+                const comments = post.comments || []
+
+                return (
+                  <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)] overflow-hidden">
+                    <div className="p-4 md:p-6 flex justify-between items-center">
+                      <div className="flex gap-3 md:gap-4 items-center cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
+                        <img src={post.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`} alt={post.user?.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-outline-variant/10" />
+                        <div>
+                          <div className="flex items-center gap-1.5 md:gap-2">
+                            <h3 className="font-bold text-on-surface text-sm md:text-base leading-tight">{post.user?.name || 'Anonymous'}</h3>
+                            <Badge variant="secondary" className="text-[9px] md:text-[10px] h-3.5 md:h-4 px-1 font-bold">Curator</Badge>
+                          </div>
+                          <span className="text-[10px] md:text-xs text-on-surface-variant/70 mt-0.5 inline-block">{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Recent'}</span>
                         </div>
                       </div>
-                      <button
-                        className="text-on-surface-variant hover:text-primary transition-colors shrink-0"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <MoreHorizontal size={18} />
-                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      <DropdownMenu>
+                        <DropdownMenu.Trigger>
+                          <button className="text-on-surface-variant/50 hover:text-on-surface p-1.5 hover:bg-surface rounded-xl transition-colors">
+                            <MoreHorizontal size={18} />
+                          </button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="right">
+                          <DropdownMenu.Item 
+                            onClick={() => handleSavePost(String(post.id))}
+                            icon={<Bookmark size={16} />}
+                          >
+                            Save Post
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item 
+                            onClick={() => handleHidePost(String(post.id))}
+                            icon={<EyeOff size={16} />}
+                          >
+                            Hide Post
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item 
+                            onClick={() => handleSharePost(String(post.id))}
+                            icon={<Share2 size={16} />}
+                          >
+                            Share
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu>
                     </div>
 
-                    <p className="text-on-surface-variant leading-relaxed text-sm lg:text-base mb-5 lg:mb-8 line-clamp-3">
-                      {post.body}
-                    </p>
+                    <div className="px-4 md:px-6 pb-4 text-on-surface text-sm md:text-base leading-relaxed whitespace-pre-wrap cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>{post.content}</div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-surface-container-low">
-                      <div className="flex gap-4 lg:gap-6">
-                        <button
-                          className={`flex items-center gap-1.5 font-bold text-sm transition-colors ${liked[post.id] ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
-                          onClick={e => { e.stopPropagation(); setLiked(l => ({ ...l, [post.id]: !l[post.id] })) }}
-                        >
-                          <Heart size={16} fill={liked[post.id] ? 'currentColor' : 'none'} />
-                          <span className="hidden sm:inline">{post.likes}</span>
+                    <div className="p-2 md:p-3 px-4 md:px-6 flex justify-between items-center border-t border-outline-variant/5 text-[11px] font-bold text-on-surface-variant/80">
+                      <div className="flex gap-1 md:gap-2 items-center">
+                        <button onClick={() => handleReact(String(post.id))} className={`flex items-center gap-1.5 p-2 hover:bg-surface rounded-xl transition-all active:scale-95 group ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}>
+                          <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
+                          <span>{post.reactions?.length ?? 0}</span>
                         </button>
-                        <button
-                          className="flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-bold text-sm transition-colors"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <MessageCircle size={16} />
-                          <span className="hidden sm:inline">{post.comments}</span>
-                        </button>
-                        <button
-                          className="flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-bold text-sm transition-colors"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <Rocket size={16} />
-                          <span className="hidden sm:inline">{post.shares}</span>
+                        <button onClick={() => setActiveCommentPostId(isCommentSectionOpen ? null : String(post.id))} className={`flex items-center gap-1.5 p-2 hover:bg-surface hover:text-primary rounded-xl transition-all active:scale-95 ${isCommentSectionOpen ? 'text-primary' : ''}`}>
+                          <MessageCircle size={18} />
+                          <span>{comments.length}</span>
                         </button>
                       </div>
-                      <Badge variant="outline" size="sm">{post.handle}</Badge>
                     </div>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
+
+                    {/* ── Comments Section ── */}
+                    <AnimatePresence>
+                      {isCommentSectionOpen && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-outline-variant/10 bg-slate-50/50 p-4 space-y-4">
+                          <div className="space-y-4 max-h-[320px] overflow-y-auto no-scrollbar">
+                            {comments.map((comment: any) => {
+                              const hasReplies = comment.replies && comment.replies.length > 0
+                              const isRepliesOpen = !!expandedCommentReplies[comment.id]
+                              return (
+                                <div key={comment.id} className="space-y-2">
+                                  <div className="flex gap-3 items-start text-xs">
+                                    <Avatar src={comment.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(comment.user?.name || 'Anonymous')}`} size="sm" className="w-7 h-7" />
+                                    <div className="flex-1">
+                                      <div className="bg-white p-2.5 rounded-xl border border-outline-variant/10 shadow-sm inline-block max-w-[95%]">
+                                        <span className="font-bold text-on-surface block mb-0.5">{comment.user?.name}</span>
+                                        <p className="text-on-surface-variant leading-relaxed">{comment.content}</p>
+                                      </div>
+                                      {hasReplies && (
+                                        <button onClick={() => toggleReplies(comment.id)} className="flex items-center gap-1 mt-1 text-[10px] font-extrabold text-primary hover:underline transition-all">
+                                          <ChevronDown size={12} className={`transition-transform duration-200 ${isRepliesOpen ? 'rotate-180' : ''}`} />
+                                          <span>{isRepliesOpen ? 'إخفاء الردود' : `عرض الردود (${comment.replies.length})`}</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <AnimatePresence>
+                                    {hasReplies && isRepliesOpen && (
+                                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pl-9 space-y-2 overflow-hidden">
+                                        {comment.replies.map((reply: any) => (
+                                          <div key={reply.id} className="flex gap-2 items-start text-[11px]">
+                                            <CornerDownRight size={13} className="text-outline-variant mt-1.5 shrink-0" />
+                                            <Avatar src={reply.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(reply.user?.name ?? 'user')}`} size="sm" className="h-5 w-5 rounded-lg shrink-0" />
+                                            <div className="flex-1 bg-white/70 p-2 rounded-xl border border-outline-variant/5 shadow-sm">
+                                              <span className="font-bold text-on-surface block mb-0.5">{reply.user?.name}</span>
+                                              <p className="text-on-surface-variant">{reply.content}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <form onSubmit={(e) => handleAddComment(e, String(post.id))} className="flex gap-2 items-center pt-2 border-t border-outline-variant/5">
+                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a cosmic comment..." className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 h-9 text-xs focus:outline-none focus:border-primary shadow-sm" />
+                            <button type="submit" disabled={!commentText.trim()} className="p-2 bg-primary text-white rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"><Send size={14} /></button>
+                          </form>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Right sidebar — hidden on mobile/tablet, visible on xl ── */}
-      <aside className="hidden xl:block xl:col-span-4 px-6 py-10 bg-surface-container-low/50 min-h-screen border-l border-outline-variant/10">
-        <div className="flex flex-col gap-8 sticky top-24">
+      {/* ── Story Modal Registration ── */}
+      <CreateStoryModal 
+        open={isStoryModalOpen} 
+        onClose={() => setIsStoryModalOpen(false)} 
+      />
 
-          {/* Time Capsule */}
-          <section className="bg-white/70 backdrop-blur-2xl p-5 rounded-2xl border border-white/40 shadow-[0_10px_30px_rgba(0,0,0,0.03)]">
-            <div className="flex items-center justify-between mb-5">
-              <h4 className="text-sm font-bold font-headline uppercase tracking-widest text-on-surface-variant">Time Capsule</h4>
-              <span className="material-symbols-outlined text-primary text-xl">schedule</span>
-            </div>
-            {[
-              { month: 'OCT', day: '24', title: 'Digital Renaissance Keynote', time: '09:00 PM' },
-              { month: 'OCT', day: '26', title: 'Vector Void Launch',          time: 'Draft • Edit', dim: true },
-            ].map(item => (
-              <div key={item.day} className={`flex items-center gap-3 group cursor-pointer mb-4 ${item.dim ? 'opacity-60' : ''}`}>
-                <div className="w-11 h-11 rounded-xl bg-primary-fixed flex flex-col items-center justify-center text-primary font-bold shrink-0">
-                  <span className="text-[10px]">{item.month}</span>
-                  <span className="text-base leading-none">{item.day}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{item.title}</p>
-                  <p className="text-xs text-on-surface-variant">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </section>
-
-          {/* Trending */}
-          <section>
-            <h4 className="text-sm font-bold font-headline uppercase tracking-widest text-on-surface-variant mb-5">Trending in the Cosmos</h4>
-            <div className="flex flex-col gap-4">
-              {TRENDING.map(t => (
-                <div key={t.tag} className="flex flex-col cursor-pointer group">
-                  <span className="text-xs text-primary font-bold mb-0.5 group-hover:underline">{t.tag}</span>
-                  <span className="text-sm font-medium text-on-surface">{t.desc}</span>
-                  <span className="text-[10px] text-on-surface-variant mt-0.5 uppercase font-bold">{t.count} Curations</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Suggested */}
-          <section className="bg-surface-container-high/40 p-5 rounded-2xl border border-white/20">
-            <h4 className="text-sm font-bold font-headline uppercase tracking-widest text-on-surface-variant mb-5">Celestial Curators</h4>
-            <div className="flex flex-col gap-4">
-              {[
-                { name: 'Marcus Sol', avatar: 'https://i.pravatar.cc/40?img=12' },
-                { name: 'Luna Ray',   avatar: 'https://i.pravatar.cc/40?img=25' },
-              ].map(u => (
-                <div key={u.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar src={u.avatar} alt={u.name} size="sm" />
-                    <span className="text-sm font-bold">{u.name}</span>
-                  </div>
-                  <Button variant="secondary" size="sm">Orbit</Button>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </aside>
     </div>
   )
 }

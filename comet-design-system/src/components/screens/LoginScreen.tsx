@@ -1,63 +1,25 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
-import axios from 'axios'
 import { Input } from '../ui/Input'
 import { motionVariants } from '../../lib/theme'
+import { useSignIn, normaliseAuthError } from '../../hooks/useAuthMutations'
 import logoImg from '../../assets/logo.png'
 
 export function LoginScreen() {
-  const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
-
-  // تعريف الـ States لإدارة البيانات والأخطاء والتحميل
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // TanStack Query mutation — handles tokens, store update, and navigation
+  const { mutate: signIn, isPending, error, reset } = useSignIn()
+
+  const errorMessage = error ? normaliseAuthError(error) : ''
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setErrorMessage('')
-
-    if (!email || !password) {
-      setErrorMessage('Please enter both email and password.')
-      setLoading(false)
-      return
-    }
-
-    try {
-      const response = await axios.post('http://localhost:8000/auth/signin', {
-        email,
-        password,
-      })
-
-      console.log('Server Raw Response:', response.data)
-
-      // التعديل الجوهري: مطابقة المفتاح تماماً مع الـ Console (accessToken)
-      const token = response.data?.accessToken || response.data?.token
-
-      if (response.data && token) {
-        localStorage.setItem('comet_token', token)
-        console.log('Login Successful! Token saved.')
-        navigate('/home') // التوجيه لصفحة الـ Home بعد النجاح
-      } else {
-        setErrorMessage('Authentication succeeded but no token was received.')
-      }
-    } catch (error: any) {
-      console.error('Login error:', error)
-      if (!error.response) {
-        setErrorMessage('Cannot connect to the server. Please check if backend is running.')
-      } else {
-        setErrorMessage(
-          error.response?.data?.message || 'Invalid email or password. Please try again.'
-        )
-      }
-    } finally {
-      setLoading(false)
-    }
+    if (!email || !password) return
+    signIn({ email, password })
   }
 
   return (
@@ -69,20 +31,17 @@ export function LoginScreen() {
           'radial-gradient(circle at 88% 82%, rgba(0,212,255,0.09) 0%, transparent 42%), #f8f9ff',
       }}
     >
-      {/* الـ Glow الخلفي */}
       <div className="hidden sm:block fixed top-[10%] right-[8%] w-[20rem] h-[20rem] md:w-[28rem] md:h-[28rem] bg-primary/10 rounded-full blur-[80px] md:blur-[110px] pointer-events-none" />
       <div className="hidden sm:block fixed bottom-[15%] left-[4%] w-[18rem] h-[18rem] md:w-[24rem] md:h-[24rem] bg-[#00D4FF]/8 rounded-full blur-[70px] md:blur-[90px] pointer-events-none" />
 
-      <motion.div 
-        {...motionVariants.scaleIn} 
+      <motion.div
+        {...motionVariants.scaleIn}
         className="relative z-10 w-full max-w-[420px] my-auto max-h-[95vh] overflow-y-auto no-scrollbar"
       >
         <div className="bg-white/72 backdrop-blur-2xl rounded-[1.75rem] shadow-[0_24px_64px_rgba(107,70,192,0.10)] border border-white/60 overflow-hidden">
-          
           <div className="h-1 w-full bg-gradient-to-r from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF]" />
 
           <div className="px-6 py-8 sm:px-10 sm:p-10 flex flex-col gap-6 sm:gap-8">
-            
             <header className="text-center space-y-1.5 sm:space-y-2">
               <div className="flex justify-center mb-1">
                 <img src={logoImg} alt="Comet logo" className="h-[90px] w-[90px] sm:h-[120px] sm:w-[120px] object-contain" />
@@ -95,9 +54,8 @@ export function LoginScreen() {
               </p>
             </header>
 
-            {/* رسالة الخطأ التفاعلية */}
             {errorMessage && (
-              <div className="text-xs sm:text-sm font-semibold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100 text-center animate-fade-in">
+              <div className="text-xs sm:text-sm font-semibold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100 text-center">
                 {errorMessage}
               </div>
             )}
@@ -108,10 +66,7 @@ export function LoginScreen() {
                 type="email"
                 placeholder="curator@comet.io"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (errorMessage) setErrorMessage('')
-                }}
+                onChange={(e) => { setEmail(e.target.value); reset() }}
               />
 
               <div className="space-y-1">
@@ -119,10 +74,7 @@ export function LoginScreen() {
                   <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
                     Password
                   </label>
-                  <button
-                    type="button"
-                    className="text-[11px] font-semibold text-primary hover:opacity-75 transition-opacity"
-                  >
+                  <button type="button" className="text-[11px] font-semibold text-primary hover:opacity-75 transition-opacity">
                     Forgot password?
                   </button>
                 </div>
@@ -130,10 +82,7 @@ export function LoginScreen() {
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    if (errorMessage) setErrorMessage('')
-                  }}
+                  onChange={(e) => { setPassword(e.target.value); reset() }}
                   trailingIcon={
                     <button
                       type="button"
@@ -149,21 +98,18 @@ export function LoginScreen() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isPending || !email || !password}
                 className={[
                   'w-full h-14 mt-2 rounded-2xl',
                   'bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF]',
                   'text-white font-headline font-bold text-[1rem] tracking-wide',
-                  'shadow-[0_8px_24px_rgba(107,70,192,0.32)]',
-                  'hover:shadow-[0_12px_32px_rgba(107,70,192,0.42)]',
-                  'hover:brightness-105',
-                  'active:scale-[0.98]',
-                  'transition-all duration-200',
+                  'shadow-[0_8px_24px_rgba(107,70,192,0.32)] hover:shadow-[0_12px_32px_rgba(107,70,192,0.42)]',
+                  'hover:brightness-105 active:scale-[0.98] transition-all duration-200',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                  isPending ? 'opacity-70 cursor-not-allowed' : '',
                 ].join(' ')}
               >
-                {loading ? 'Signing In...' : 'Sign In'}
+                {isPending ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
 
@@ -176,23 +122,11 @@ export function LoginScreen() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Google', icon: 'G' },
-                { label: 'Apple',  icon: '' },
-              ].map(p => (
+              {[{ label: 'Google' }, { label: 'Apple' }].map(p => (
                 <button
                   key={p.label}
                   type="button"
-                  className={[
-                    'h-12 flex items-center justify-center gap-2.5',
-                    'rounded-xl border border-outline-variant/20',
-                    'bg-white/50 hover:bg-white/80',
-                    'text-on-surface font-semibold text-sm',
-                    'transition-all duration-200',
-                    'shadow-[0_2px_8px_rgba(0,0,0,0.04)]',
-                    'hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
-                  ].join(' ')}
+                  className="h-12 flex items-center justify-center gap-2.5 rounded-xl border border-outline-variant/20 bg-white/50 hover:bg-white/80 text-on-surface font-semibold text-sm transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
                 >
                   {p.label === 'Apple' && (
                     <span className="material-symbols-outlined text-[18px]">phone_iphone</span>
@@ -204,24 +138,16 @@ export function LoginScreen() {
 
             <p className="text-center text-[0.875rem] text-on-surface-variant">
               Don't have an account?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all"
-              >
+              <a href="/register" className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all">
                 Sign Up
-              </button>
+              </a>
             </p>
           </div>
         </div>
 
         <div className="mt-5 sm:mt-7 mb-2 flex justify-center gap-6">
           {['Privacy Policy', 'Support', 'Terms'].map(l => (
-            <a
-              key={l}
-              href="#"
-              className="text-[10px] font-label font-semibold tracking-widest uppercase text-on-surface-variant/50 hover:text-primary transition-colors"
-            >
+            <a key={l} href="#" className="text-[10px] font-label font-semibold tracking-widest uppercase text-on-surface-variant/50 hover:text-primary transition-colors">
               {l}
             </a>
           ))}

@@ -1,26 +1,28 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+/**
+ * ThemeProvider — thin bridge so legacy `useTheme()` callers keep working.
+ *
+ * The actual state now lives in uiStore (Zustand, persisted).
+ * This provider just applies the stored theme class on mount and re-exports
+ * the same API shape so nothing else needs to change.
+ */
 
-type Theme = 'light' | 'dark'
+import { useEffect, type ReactNode } from 'react'
+import { useUIStore } from '../stores/uiStore'
 
-interface ThemeContextValue {
-  theme: Theme
-  toggleTheme: () => void
+/** Keep the existing hook API intact so UserMenu and others need no changes. */
+export function useTheme() {
+  const theme       = useUIStore((s) => s.theme)
+  const toggleTheme = useUIStore((s) => s.toggleTheme)
+  return { theme, toggleTheme }
 }
-
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', toggleTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const theme = useUIStore((s) => s.theme)
 
-  const toggleTheme = () => {
-    setTheme((t) => {
-      const next = t === 'light' ? 'dark' : 'light'
-      document.documentElement.classList.toggle('dark', next === 'dark')
-      return next
-    })
-  }
+  // Apply the dark class on initial render based on persisted preference
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
-  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
+  return <>{children}</>
 }
-
-export const useTheme = () => useContext(ThemeContext)

@@ -1,137 +1,161 @@
 import { motion } from 'framer-motion'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Loader2 } from 'lucide-react'
 import { Button } from '../ui/Button'
-
-const MY_GROUPS = [
-  { id: 1, name: 'Design Thinking Lab', members: '1.2k', role: 'Admin' },
-  { id: 2, name: 'The Syntax Society', members: '842', role: 'Moderator' },
-  { id: 3, name: 'Architectural Soul', members: '3.5k', role: null },
-]
-
-const DISCOVER = [
-  { id: 1, name: 'Culinaria Collective', members: '12k', category: 'Culture & Arts', desc: 'A high-end sanctuary for food enthusiasts exploring the intersection of art and gastronomy.' },
-  { id: 2, name: 'Nebula Devs', members: '5.2k', category: 'Technology', desc: 'Pushing the boundaries of decentralized experiences through collective celestial engineering.' },
-  { id: 3, name: 'Ethereal Nature', members: '8.9k', category: 'Environment', desc: 'Documenting the quiet, atmospheric beauty of our planet\'s most hidden landscapes.' },
-]
+import { useGroups, useJoinGroup, useLeaveGroup } from '../../hooks/useGroupsQuery'
 
 const FILTERS = ['All', 'Creative', 'Tech', 'Nature']
 
 export function GroupsScreen() {
+  const { data: allGroups = [], isLoading, isError, refetch } = useGroups()
+  const joinGroup  = useJoinGroup()
+  const leaveGroup = useLeaveGroup()
+
+  const myGroups      = allGroups.filter(g => g.role != null)
+  const discoverGroups = allGroups.filter(g => g.role == null)
+
+  const handleLeave = (groupId: string) => {
+    if (!window.confirm('Are you sure you want to leave this constellation?')) return
+    leaveGroup.mutate(groupId)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#f8f9ff]">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-sm font-medium text-on-surface-variant">Mapping the cosmos groups...</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="p-12 min-h-screen">
+    <div className="p-12 min-h-screen bg-[#f8f9ff]">
+
+      {isError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-center text-sm font-semibold text-red-500">
+          Failed to load groups.
+          <button onClick={() => refetch()} className="block mx-auto mt-1 text-xs text-primary underline">Reload</button>
+        </div>
+      )}
+
       {/* My Groups */}
       <section className="mb-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <span className="text-primary font-semibold tracking-[0.2em] uppercase text-xs mb-2 block font-label">Your Inner Circles</span>
-            <h2 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">My Groups</h2>
+            <h3 className="font-headline text-2xl font-extrabold tracking-tight mb-2">My Constellations</h3>
+            <p className="text-sm text-on-surface-variant">The communities you shape and guide.</p>
           </div>
-          <button className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
-            View all <span className="material-symbols-outlined text-base">arrow_forward</span>
-          </button>
+          <Button variant="primary" className="flex items-center gap-2">
+            <Plus size={16} /> Create Group
+          </Button>
         </div>
 
-        <div className="flex gap-8 overflow-x-auto pb-6 hide-scrollbar">
-          {MY_GROUPS.map((g, i) => (
-            <motion.div
-              key={g.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex-none w-80 group cursor-pointer"
-            >
-              <div className="h-56 w-full rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-xl transition-all duration-500 bg-gradient-to-br from-primary/30 to-[#00D4FF]/20 relative">
-                {g.role && (
-                  <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1 backdrop-blur-md border text-white text-[10px] font-bold uppercase tracking-widest rounded-full ${g.role === 'Admin' ? 'bg-white/20 border-white/20' : 'bg-primary/40 border-primary/30'}`}>
-                      {g.role}
-                    </span>
+        {myGroups.length === 0 ? (
+          <div className="text-center py-12 bg-white/40 rounded-2xl border-2 border-dashed border-outline-variant/30">
+            <p className="text-on-surface-variant text-sm font-medium">You haven't joined any groups yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {myGroups.map((g, i) => (
+              <motion.div
+                key={g.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Users size={20} />
+                    </div>
+                    {g.role && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary">{g.role}</span>
+                    )}
                   </div>
-                )}
-              </div>
-              <h3 className="font-headline font-bold text-lg mb-1">{g.name}</h3>
-              <p className="text-on-surface-variant text-sm flex items-center gap-2">
-                <Users size={14} /> {g.members} Members
-              </p>
-            </motion.div>
-          ))}
-
-          {/* Create placeholder */}
-          <div className="flex-none w-80">
-            <button className="h-56 w-full rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low flex flex-col items-center justify-center gap-4 group hover:bg-surface-container transition-colors duration-300">
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                <Plus size={20} />
-              </div>
-              <span className="text-sm font-bold text-on-surface-variant">Create New Group</span>
-            </button>
+                  <h4 className="font-headline font-bold text-lg mb-1 text-on-surface">{g.name}</h4>
+                  <p className="text-xs text-on-surface-variant/80 line-clamp-2 mb-4">
+                    {g.description || 'No description for this celestial space.'}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+                  <span className="text-xs text-on-surface-variant font-medium">{g.membersCount ?? 0} Members</span>
+                  <Button
+                    variant="secondary" size="sm"
+                    className="text-red-500 hover:bg-red-50"
+                    disabled={leaveGroup.isPending}
+                    onClick={() => handleLeave(g.id)}
+                  >
+                    Leave
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        )}
       </section>
 
       {/* Discover */}
       <section>
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <span className="text-[#00677e] font-semibold tracking-[0.2em] uppercase text-xs mb-2 block font-label">Expand Your Universe</span>
-            <h2 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Discover Communities</h2>
-          </div>
-          <div className="flex gap-2">
-            {FILTERS.map((f, i) => (
-              <button key={f} className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all ${i === 0 ? 'bg-white shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-low'}`}>
+        <div className="mb-8">
+          <h3 className="font-headline text-2xl font-extrabold tracking-tight mb-2">Discover Communities</h3>
+          <p className="text-sm text-on-surface-variant">Expand your horizon. Join new conceptual spaces.</p>
+          <div className="flex gap-2 mt-6">
+            {FILTERS.map(f => (
+              <button key={f} className={`px-4 h-9 rounded-xl text-xs font-semibold transition-all ${f === 'All' ? 'bg-primary text-white shadow-sm' : 'bg-white/60 hover:bg-white text-on-surface-variant border border-outline-variant/10'}`}>
                 {f}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-          {DISCOVER.map((g, i) => (
-            <motion.div
-              key={g.id}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.12 }}
-              className="group relative bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col"
-            >
-              <div className="h-64 bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent" />
+        {discoverGroups.length === 0 && (
+          <div className="text-center py-12 bg-white/40 rounded-2xl border-2 border-dashed border-outline-variant/30">
+            <p className="text-on-surface-variant text-sm font-medium">No groups to discover right now.</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {discoverGroups.map(g => (
+            <motion.div key={g.id} layout className="bg-white rounded-2xl p-6 border border-outline-variant/15 shadow-sm flex flex-col justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                <div>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-1">{g.privacy || 'PUBLIC'}</span>
+                  <h4 className="font-headline font-bold text-xl text-on-surface mb-2">{g.name}</h4>
+                  <p className="text-sm text-on-surface-variant leading-relaxed">{g.description || 'Explore collective thinking inside this Comet community.'}</p>
+                </div>
+                <Button
+                  variant="primary" size="sm"
+                  disabled={joinGroup.isPending && joinGroup.variables === g.id}
+                  onClick={() => joinGroup.mutate(g.id)}
+                  className="sm:self-start min-w-[90px] h-9 rounded-xl flex items-center justify-center"
+                >
+                  {joinGroup.isPending && joinGroup.variables === g.id ? <Loader2 size={14} className="animate-spin" /> : 'Join'}
+                </Button>
               </div>
-              <div className="p-8 relative -mt-8 flex-1 flex flex-col">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3].map(j => (
-                      <div key={j} className="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high" />
-                    ))}
-                  </div>
-                  <span className="text-xs font-semibold text-on-surface-variant">+{g.members} joined</span>
-                </div>
-                <h4 className="font-headline text-2xl font-bold mb-3 group-hover:text-primary transition-colors">{g.name}</h4>
-                <p className="text-on-surface-variant text-sm leading-relaxed mb-6">{g.desc}</p>
-                <div className="mt-auto flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{g.category}</span>
-                  <Button variant="primary" size="sm">Join Group</Button>
-                </div>
+              <div className="flex items-center gap-2 text-xs text-on-surface-variant/70 font-semibold pt-4 border-t border-outline-variant/5">
+                <Users size={14} />
+                <span>{g.membersCount ?? 0} Curators in orbit</span>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* CTA banner */}
+      {/* CTA */}
       <section className="mt-24 mb-12">
-        <div className="bg-surface-container-low rounded-[2rem] p-16 flex flex-col lg:flex-row items-center gap-20 overflow-hidden relative">
+        <div className="bg-surface-container-low rounded-[2rem] p-16 flex flex-col lg:flex-row items-center gap-20 overflow-hidden relative border border-outline-variant/5">
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
           <div className="lg:w-1/2 relative z-10">
             <span className="text-primary font-bold tracking-widest text-xs uppercase mb-4 block">Curated Focus</span>
             <h2 className="font-headline text-5xl font-extrabold mb-8 leading-tight">Create your own constellation.</h2>
-            <p className="text-on-surface-variant mb-12 leading-loose max-w-lg">Bring your community to life with Comet's high-fidelity group tools. Designed for those who value depth and intentional connection.</p>
+            <p className="text-on-surface-variant mb-12 leading-loose max-w-lg">Bring your community to life with Comet's high-fidelity group tools.</p>
             <div className="flex gap-6">
               <Button variant="primary" size="lg">Start a Group</Button>
               <Button variant="secondary" size="lg">Learn More</Button>
             </div>
           </div>
           <div className="lg:w-1/2 flex justify-center">
-            <div className="w-full max-w-sm aspect-square bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 rounded-[3rem] shadow-2xl rotate-3 translate-x-12 translate-y-6" />
+            <div className="w-full max-w-sm aspect-square bg-gradient-to-tr from-[#6B46C0]/20 to-[#00D4FF]/20 rounded-3xl blur-sm" />
           </div>
         </div>
       </section>

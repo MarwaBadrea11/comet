@@ -1,138 +1,272 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Heart, Share2, Bookmark, Send } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Heart, Pause, Play } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
+import { useAuthStore } from '../../stores/authStore'
+import { useFeed } from '../../hooks/usePostsQuery'
 
-const STORIES = [
-  { id: 1, name: 'Elena Thorne', handle: '@elena_t', avatar: 'https://i.pravatar.cc/80?img=47', time: '2 hours ago', views: '1.2k', segments: 3, current: 1 },
-  { id: 2, name: 'Marcus Sol', handle: '@marcus_sol', avatar: 'https://i.pravatar.cc/80?img=12', time: '4 hours ago', views: '892', segments: 2, current: 0 },
-  { id: 3, name: 'Julian Voss', handle: '@julian_v', avatar: 'https://i.pravatar.cc/80?img=33', time: '6 hours ago', views: '445', segments: 4, current: 2 },
-  { id: 4, name: 'Sophia Ray', handle: '@sophia_r', avatar: 'https://i.pravatar.cc/80?img=25', time: '8 hours ago', views: '2.1k', segments: 2, current: 0 },
-  { id: 5, name: 'Liam Chen', handle: '@liam_c', avatar: 'https://i.pravatar.cc/80?img=8', time: '12 hours ago', views: '334', segments: 1, current: 0, viewed: true },
-]
+const STORY_DURATION = 5000 // 5 seconds per story
 
 export function StoriesScreen() {
   const navigate = useNavigate()
-  const [activeStory, setActiveStory] = useState(0)
-  const story = STORIES[activeStory]
+  const user = useAuthStore(s => s.user)
+  const { data: feed = [] } = useFeed()
+
+  // ── Local Storage Stories ──
+  const [allLocalStories, setAllLocalStories] = useState<any[]>(() => {
+    const saved = localStorage.getItem('comet_global_local_stories')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // Merge local and server stories
+  const currentAccountLocalStories = allLocalStories.filter((s: any) => s.userId === user?.id)
+  const serverStories = feed.filter((p: any) => p.type === 'STORY')
+  const stories = [
+    ...currentAccountLocalStories,
+    ...serverStories.filter((ss: any) => !currentAccountLocalStories.some(ls => String(ls.id) === String(ss.id)))
+  ]
+
+  // ── States ──
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
+  const progressInterval = useRef<NodeJS.Timeout>()
+
+  const currentStory = stories[currentIndex]
+
+  // ── Progress Timer ──
+  useEffect(() => {
+    if (!currentStory || isPaused) return
+
+    const startTime = Date.now()
+    progressInterval.current = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const newProgress = Math.min((elapsed / STORY_DURATION) * 100, 100)
+      setProgress(newProgress)
+
+      if (newProgress >= 100) {
+        handleNext()
+      }
+    }, 50)
+
+    return () => {
+      if (progressInterval.current) clearInterval(progressInterval.current)
+    }
+  }, [currentIndex, isPaused, currentStory])
+
+  // ── Sync with Local Storage ──
+  useEffect(() => {
+    const handleStoriesUpdate = () => {
+      const saved = localStorage.getItem('comet_global_local_stories')
+      if (saved) setAllLocalStories(JSON.parse(saved))
+    }
+
+    window.addEventListener('comet_stories_updated', handleStoriesUpdate)
+    return () => window.removeEventListener('comet_stories_updated', handleStoriesUpdate)
+  }, [])
+
+  // ── Handlers ──
+  const handleNext = () => {
+    if (currentIndex < stories.length - 1) {
+      setCurrentIndex(prev => prev + 1)
+      setProgress(0)
+      setIsLiked(false)
+    } else {
+      navigate('/home')
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1)
+      setProgress(0)
+      setIsLiked(false)
+    }
+  }
+
+  const handleClose = () => {
+    navigate('/home')
+  }
+
+  const togglePause = () => {
+    setIsPaused(!isPaused)
+  }
+
+  const handleLike = () => {
+    setIsLiked(!isLiked)
+  }
+
+  // ── Empty State ──
+  if (!stories || stories.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[200]">
+        <div className="text-center space-y-4">
+          <p className="text-white/60 text-lg">No stories yet</p>
+          <button 
+            onClick={handleClose}
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Story tray */}
-      <section className="px-12 py-8">
-        <div className="flex items-center gap-6 overflow-x-auto pb-4 hide-scrollbar">
-          {/* Add story */}
-          <div className="flex flex-col items-center gap-3 shrink-0 cursor-pointer">
-            <div className="relative p-1 rounded-full bg-surface-container-highest">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white bg-surface-container-high flex items-center justify-center">
-                <span className="material-symbols-outlined text-on-surface-variant">person</span>
-              </div>
-              <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1 border-2 border-white">
-                <span className="material-symbols-outlined text-sm">add</span>
-              </div>
-            </div>
-            <span className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant">Your Story</span>
-          </div>
+    <div className="fixed inset-0 bg-black z-[200] flex items-center justify-center overflow-hidden select-none">
+      
+      {/* ── Background Blur Effect ── */}
+      {currentStory?.mediaUrl && (
+        <div 
+          className="absolute inset-0 opacity-30 blur-3xl scale-110"
+          style={{ 
+            backgroundImage: `url(${currentStory.mediaUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+      )}
 
-          {STORIES.map((s, i) => (
-            <div key={s.id} className="flex flex-col items-center gap-3 shrink-0 cursor-pointer" onClick={() => setActiveStory(i)}>
-              <Avatar src={s.avatar} alt={s.name} size="xl" ring ringVariant={s.viewed ? 'viewed' : 'gradient'} />
-              <span className={`text-xs font-label font-bold uppercase tracking-widest ${s.viewed ? 'text-on-surface-variant' : 'text-primary'}`}>{s.name.split(' ')[0]}</span>
+      {/* ── Main Story Container ── */}
+      <div className="relative w-full max-w-md h-full md:h-[90vh] md:rounded-3xl overflow-hidden shadow-2xl">
+        
+        {/* ── Progress Bars ── */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex gap-1 p-3">
+          {stories.map((_, idx) => (
+            <div key={idx} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-white"
+                initial={{ width: '0%' }}
+                animate={{ 
+                  width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' 
+                }}
+                transition={{ duration: 0.1 }}
+              />
             </div>
           ))}
         </div>
-      </section>
 
-      {/* Story viewer overlay */}
-      <AnimatePresence>
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-8 bg-black/80 backdrop-blur-[24px]"
-        >
-          {/* Close */}
-          <button onClick={() => navigate(-1)} className="absolute top-8 right-8 text-white/60 hover:text-white transition-colors">
-            <X size={36} />
-          </button>
-
-          {/* Prev */}
-          <button
-            onClick={() => setActiveStory(s => Math.max(0, s - 1))}
-            className="absolute left-12 p-4 rounded-full bg-[rgba(0,210,253,0.15)] backdrop-blur-xl border border-[rgba(0,210,253,0.2)] text-[#b4ebff] hover:scale-110 transition-transform"
-          >
-            <ChevronLeft size={28} />
-          </button>
-
-          {/* Next */}
-          <button
-            onClick={() => setActiveStory(s => Math.min(STORIES.length - 1, s + 1))}
-            className="absolute right-12 p-4 rounded-full bg-[rgba(0,210,253,0.15)] backdrop-blur-xl border border-[rgba(0,210,253,0.2)] text-[#b4ebff] hover:scale-110 transition-transform"
-          >
-            <ChevronRight size={28} />
-          </button>
-
-          {/* Story card */}
-          <div className="relative w-full max-w-lg aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/40 flex flex-col">
-            {/* BG */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-[#00D4FF]/20" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
-
-            {/* Progress bars */}
-            <div className="relative z-10 p-6 flex gap-1">
-              {Array.from({ length: story.segments }).map((_, i) => (
-                <div key={i} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
-                  <div className={`h-full bg-white rounded-full ${i < story.current ? 'w-full' : i === story.current ? 'w-2/3' : 'w-0'}`} />
-                </div>
-              ))}
-            </div>
-
-            {/* Header */}
-            <div className="relative z-10 px-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden">
-                  <img src={story.avatar} alt={story.name} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h4 className="text-white font-headline font-bold text-sm">{story.name}</h4>
-                  <span className="text-white/70 text-xs font-label">{story.time}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {[{ icon: 'visibility', val: story.views }, { icon: 'schedule', val: '14h' }].map(b => (
-                  <div key={b.icon} className="bg-[rgba(0,210,253,0.15)] backdrop-blur-xl border border-[rgba(0,210,253,0.2)] px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-[#b4ebff]" style={{ fontVariationSettings: "'FILL' 1" }}>{b.icon}</span>
-                    <span className="text-[#b4ebff] text-xs font-bold font-label">{b.val}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-grow" />
-
-            {/* Reply */}
-            <div className="relative z-10 p-6 pb-10">
-              <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md border border-white/20 p-2 pl-5 rounded-full">
-                <input className="bg-transparent border-none text-white placeholder-white/50 focus:ring-0 text-sm flex-grow font-body outline-none" placeholder="Send a reply..." />
-                <button className="bg-primary text-white p-2.5 rounded-full flex items-center justify-center shadow-lg">
-                  <Send size={16} />
-                </button>
-              </div>
-              <div className="flex justify-around mt-6 text-white/80">
-                {[{ icon: <Heart size={22} />, label: 'Like' },
-                  { icon: <Share2 size={22} />, label: 'Share' },
-                  { icon: <Bookmark size={22} />, label: 'Save' }].map(a => (
-                  <button key={a.label} className="flex flex-col items-center gap-1 hover:text-white transition-colors group">
-                    <span className="group-hover:scale-110 transition-transform">{a.icon}</span>
-                    <span className="text-[10px] font-label font-bold uppercase tracking-tighter">{a.label}</span>
-                  </button>
-                ))}
-              </div>
+        {/* ── Header ── */}
+        <div className="absolute top-8 left-0 right-0 z-10 px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar 
+              src={currentStory?.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(currentStory?.user?.name || 'User')}`}
+              alt={currentStory?.user?.name}
+              size="sm"
+              className="w-10 h-10 border-2 border-white shadow-lg"
+            />
+            <div>
+              <h3 className="font-bold text-white text-sm drop-shadow-lg">
+                {currentStory?.user?.name || 'Anonymous'}
+              </h3>
+              <p className="text-white/70 text-xs drop-shadow-md">
+                {currentStory?.createdAt ? new Date(currentStory.createdAt).toLocaleDateString() : 'Recent'}
+              </p>
             </div>
           </div>
-        </motion.section>
-      </AnimatePresence>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={togglePause}
+              className="p-2 bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white rounded-full transition-colors"
+            >
+              {isPaused ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+            <button 
+              onClick={handleClose}
+              className="p-2 bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white rounded-full transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Story Content ── */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStory?.id}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full flex items-center justify-center relative"
+          >
+            {currentStory?.mediaUrl ? (
+              /* Image Story */
+              <img 
+                src={currentStory.mediaUrl} 
+                alt="Story content"
+                className="w-full h-full object-contain"
+                draggable={false}
+              />
+            ) : (
+              /* Text Story with Gradient Background */
+              <div className="w-full h-full bg-gradient-to-br from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] flex items-center justify-center p-8">
+                <p className="text-white text-2xl md:text-3xl font-bold text-center leading-relaxed drop-shadow-2xl">
+                  {currentStory?.content || 'No content'}
+                </p>
+              </div>
+            )}
+
+            {/* Text Overlay for Image Stories */}
+            {currentStory?.mediaUrl && currentStory?.content && (
+              <div className="absolute bottom-20 left-0 right-0 px-6">
+                <p className="text-white text-lg font-semibold text-center drop-shadow-2xl bg-black/30 backdrop-blur-sm rounded-2xl p-4">
+                  {currentStory.content}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* ── Navigation Areas ── */}
+        <div className="absolute inset-0 flex">
+          {/* Left tap area */}
+          <button 
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className="flex-1 flex items-center justify-start pl-4 disabled:opacity-0"
+          >
+            <div className="p-2 bg-black/20 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <ChevronLeft size={24} className="text-white" />
+            </div>
+          </button>
+          
+          {/* Right tap area */}
+          <button 
+            onClick={handleNext}
+            disabled={currentIndex === stories.length - 1}
+            className="flex-1 flex items-center justify-end pr-4"
+          >
+            <div className="p-2 bg-black/20 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <ChevronRight size={24} className="text-white" />
+            </div>
+          </button>
+        </div>
+
+        {/* ── Bottom Actions ── */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-10 bg-gradient-to-t from-black/60 to-transparent">
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <button 
+              onClick={handleLike}
+              className={`p-3 rounded-full transition-all active:scale-90 ${
+                isLiked 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white/20 backdrop-blur-sm text-white hover:bg-white/30'
+              }`}
+            >
+              <Heart 
+                size={24} 
+                fill={isLiked ? 'currentColor' : 'none'}
+              />
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   )
 }

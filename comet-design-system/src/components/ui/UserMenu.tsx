@@ -1,9 +1,9 @@
 import { useRef, useEffect } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import { Sun, Moon, LogOut, ChevronDown, User, Settings } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useTheme } from '../../providers/ThemeProvider'
+import { useAuth } from '../../context/AuthContext'
 
 interface UserMenuProps {
   open: boolean
@@ -27,7 +27,7 @@ const dropdownVariants: Variants = {
 
 export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuProps) {
   const { theme, toggleTheme } = useTheme()
-  const navigate = useNavigate()
+  const { signOut } = useAuth()
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on outside click
@@ -50,17 +50,17 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
 
   const handleLogout = () => {
     onClose()
-    navigate('/login')
+    signOut()
   }
 
   const handleProfile = () => {
     onClose()
-    navigate('/profile')
+    window.location.href = '/profile'
   }
 
   const handleSettings = () => {
     onClose()
-    navigate('/settings')
+    window.location.href = '/settings'
   }
 
   return (

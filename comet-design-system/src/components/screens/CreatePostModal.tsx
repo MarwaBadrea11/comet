@@ -1,137 +1,310 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Rocket, Trash2, Image } from 'lucide-react'
+import { X, Image as ImageIcon, Smile, Clock, Globe, Users, Lock } from 'lucide-react'
+import EmojiPicker from 'emoji-picker-react'
 import { Button } from '../ui/Button'
+import { DateTimePicker } from '../ui/DateTimePicker'
+import { FileDropzone } from '../ui/FileDropzone'
+import { SegmentedControlVertical } from '../ui/SegmentedControl'
+import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
+import { useCreatePost, useSchedulePost } from '../../hooks/usePostsQuery'
+import { useAuthStore } from '../../stores/authStore'
+import { useQueryClient } from '@tanstack/react-query'
+import api from '../../services/api'
 
-interface Props { open: boolean; onClose: () => void }
+interface Props {
+  open: boolean
+  onClose: () => void
+  onCreated?: () => void
+}
 
-const VISIBILITY = [
-  { id: 'universal', label: 'Universal', desc: 'Visible to every curator in the galaxy.', icon: 'public' },
-  { id: 'circle',    label: 'Inner Circle', desc: 'Only shared with your trusted satellite groups.', icon: 'group_work' },
-  { id: 'private',   label: 'Private Drift', desc: 'Stored in your personal archive only.', icon: 'lock' },
-]
+const VISIBILITY_OPTIONS = [
+  { value: 'PUBLIC' as const, label: 'Universal', description: 'Visible to every curator in the galaxy.', icon: <Globe size={18} /> },
+  { value: 'FRIENDS_ONLY' as const, label: 'Inner Circle', description: 'Only shared with your trusted satellite groups.', icon: <Users size={18} /> },
+  { value: 'PRIVATE' as const, label: 'Private Drift', description: 'Stored in your personal archive only.', icon: <Lock size={18} /> },
+] as const
 
-export function CreatePostModal({ open, onClose }: Props) {
-  const [visibility, setVisibility] = useState('universal')
+type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
+
+export function CreatePostModal({ open, onClose, onCreated }: Props) {
+  const queryClient = useQueryClient()
+  const user = useAuthStore(s => s.user)
+
+  const [content, setContent] = useState('')
+  const [visibility, setVisibility] = useState<Visibility>('PUBLIC')
+  const [feeling, setFeeling] = useState('')
+  const [location, setLocation] = useState('')
+  const [mediaIds, setMediaIds] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
+  const [showScheduler, setShowScheduler] = useState(false)
+  const [showVisibilityPicker, setShowVisibilityPicker] = useState(false)
+  
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const createPost = useCreatePost()
+  const schedulePost = useSchedulePost()
+
+  const handleFilesSelected = async (files: File[]) => {
+    if (files.length === 0) return
+    setIsUploading(true)
+    
+    try {
+      const uploadedIds: string[] = []
+      
+      for (const file of files) {
+        // Client-side validation: 50MB max
+        if (file.size > 50 * 1024 * 1024) {
+          toast.error(`File "${file.name}" exceeds 50MB limit`)
+          continue
+        }
+
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        try {
+          const response = await api.post('/media/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+          if (response.data?.id) uploadedIds.push(String(response.data.id))
+        } catch (err: any) {
+          // Handle specific error codes
+          if (err.response?.status === 413) {
+            toast.error(`File "${file.name}" is too large (max 50MB)`)
+          } else if (err.response?.status === 400) {
+            toast.error(`Invalid file type: ${file.name}`)
+          } else {
+            toast.error(`Upload failed: ${file.name}`)
+          }
+        }
+      }
+      
+      if (uploadedIds.length > 0) {
+        setMediaIds(prev => [...prev, ...uploadedIds])
+        toast.success(`${uploadedIds.length} file(s) uploaded successfully`)
+      }
+    } catch (err) {
+      toast.error('Upload failed. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handlePost = () => {
+    if (!content.trim() && mediaIds.length === 0) {
+      toast.warning('Please add some content or media before posting')
+      return
+    }
+    const pendingText = content.trim()
+
+    // Determine if we're scheduling or posting immediately
+    const isScheduled = scheduledDate && scheduledDate.getTime() > Date.now()
+
+    if (isScheduled) {
+      // Schedule the post
+      schedulePost.mutate(
+        {
+          content: pendingText,
+          visibility,
+          mediaIds,
+          feeling,
+          location,
+          scheduledAt: scheduledDate.toISOString(),
+        },
+        {
+          onSuccess: () => {
+            toast.success('Post scheduled successfully!')
+            setContent('')
+            setMediaIds([])
+            setLocation('')
+            setFeeling('')
+            setScheduledDate(undefined)
+            setShowScheduler(false)
+            setShowVisibilityPicker(false)
+            onClose()
+            onCreated?.()
+          },
+          onError: (err: any) => {
+            if (err.response?.status === 400) {
+              toast.error('Invalid scheduled date or content')
+            } else {
+              toast.error('Failed to schedule post. Please try again.')
+            }
+          }
+        }
+      )
+    } else {
+      // Post immediately
+      createPost.mutate(
+        { content: pendingText, visibility, mediaIds, feeling, location },
+        {
+          onSuccess: (savedPost) => {
+            const saved = localStorage.getItem('comet_global_local_posts')
+            const currentLocal = saved ? JSON.parse(saved) : []
+
+            if (savedPost) {
+              const updated = [
+                { ...savedPost, userId: user?.id, comments: [], reactions: [] },
+                ...currentLocal
+              ]
+              localStorage.setItem('comet_global_local_posts', JSON.stringify(updated))
+            } else {
+              const fallbackPost = {
+                id: `local-${Date.now()}`,
+                userId: user?.id,
+                content: pendingText,
+                type: 'POST',
+                createdAt: new Date().toISOString(),
+                user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+                reactions: [],
+                comments: [],
+                hashtags: [],
+                location: location || undefined
+              }
+              localStorage.setItem('comet_global_local_posts', JSON.stringify([fallbackPost, ...currentLocal]))
+            }
+
+            // 📢 إطلاق الإشارة الكونية لكي تقوم شاشة الهوم فيد بتحديث نفسها فوراً
+            window.dispatchEvent(new Event('comet_posts_updated'))
+
+            toast.success('Post created successfully!')
+            setContent('')
+            setMediaIds([])
+            setLocation('')
+            setFeeling('')
+            setShowVisibilityPicker(false)
+            onClose()
+            onCreated?.()
+            queryClient.invalidateQueries({ queryKey: ['feed'] }).catch(() => {})
+          },
+          onError: (err: any) => {
+            const saved = localStorage.getItem('comet_global_local_posts')
+            const currentLocal = saved ? JSON.parse(saved) : []
+            
+            const fallbackPost = {
+              id: `local-${Date.now()}`,
+              userId: user?.id,
+              content: pendingText,
+              type: 'POST',
+              createdAt: new Date().toISOString(),
+              user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+              reactions: [],
+              comments: [],
+              hashtags: [],
+              location: location || undefined
+            }
+            localStorage.setItem('comet_global_local_posts', JSON.stringify([fallbackPost, ...currentLocal]))
+            
+            // 📢 إطلاق الإشارة الكونية حتى في حالة الـ Fallback لضمان الرندر الفوري
+            window.dispatchEvent(new Event('comet_posts_updated'))
+
+            toast.warning('Post saved locally (offline mode)')
+            setContent('')
+            setMediaIds([])
+            setShowVisibilityPicker(false)
+            onClose()
+            onCreated?.()
+          }
+        }
+      )
+    }
+  }
 
   return (
     <AnimatePresence>
       {open && (
         <>
           <motion.div {...motionVariants.modalBackdrop} className="fixed inset-0 z-[100] bg-on-surface/10 backdrop-blur-sm" onClick={onClose} />
-          <motion.div
-            {...motionVariants.scaleIn}
-            className="fixed inset-0 z-[101] flex items-center justify-center p-8"
-          >
-            <div className="bg-white/80 backdrop-blur-2xl w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(107,70,192,0.15)] flex flex-col overflow-hidden border border-outline-variant/15">
-              {/* Header */}
+          <motion.div {...motionVariants.scaleIn} className="fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8">
+            <div className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-[2rem] flex flex-col overflow-visible border border-outline-variant/15">
               <div className="px-10 py-8 flex items-center justify-between border-b border-outline-variant/10">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-2xl bg-primary-fixed">
-                    <span className="material-symbols-outlined text-primary text-3xl">auto_fix_high</span>
-                  </div>
-                  <div>
-                    <h2 className="font-headline text-2xl font-bold text-on-surface">New Cosmic Thread</h2>
-                    <p className="text-sm text-on-surface-variant">Staging your masterpiece for the curated feed.</p>
-                  </div>
-                </div>
-                <button onClick={onClose} className="w-12 h-12 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors">
-                  <X size={20} />
-                </button>
+                <h2 className="font-headline text-2xl font-bold text-on-surface">New Cosmic Thread</h2>
+                <button onClick={onClose}><X size={20} /></button>
               </div>
 
-              {/* Body */}
               <div className="flex-1 overflow-y-auto px-10 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                  {/* Left: editor */}
-                  <div className="lg:col-span-7 space-y-8">
-                    <div className="space-y-3">
-                      <label className="font-label text-xs tracking-widest text-on-surface-variant/70 uppercase">Editorial Content</label>
-                      <div className="bg-surface-container-low/50 rounded-2xl p-6 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20 transition-all min-h-[180px]">
-                        <textarea
-                          className="w-full h-32 bg-transparent border-none resize-none focus:ring-0 text-lg leading-relaxed placeholder:text-outline/50 font-body outline-none"
-                          placeholder="What's happening in your corner of the universe?"
-                        />
-                        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-outline-variant/20">
-                          {['format_bold', 'format_italic', 'link', 'sentiment_satisfied'].map(icon => (
-                            <button key={icon} className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors">
-                              <span className="material-symbols-outlined text-xl">{icon}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Media upload */}
-                    <div className="space-y-4">
-                      <label className="font-label text-xs tracking-widest text-on-surface-variant/70 uppercase">Visual Assets</label>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="aspect-square rounded-2xl bg-surface-container-low border-2 border-dashed border-primary/20 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-surface-container transition-colors group">
-                          <Image size={24} className="text-primary/40 group-hover:scale-110 transition-transform" />
-                          <span className="text-[10px] font-bold text-primary/60">UPLOAD</span>
-                        </div>
-                        {[1, 2].map(i => (
-                          <div key={i} className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-[#00D4FF]/10" />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: settings */}
-                  <div className="lg:col-span-5 space-y-8">
-                    {/* Schedule */}
-                    <div className="space-y-5 bg-surface-container-low/30 p-6 rounded-3xl">
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
-                        <h3 className="font-headline font-bold text-lg">Time Capsule</h3>
-                      </div>
-                      <p className="text-xs text-on-surface-variant leading-relaxed">Schedule your content to align with peak cosmic resonance.</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[{ label: 'DATE', value: 'Oct 24, 2024', icon: 'calendar_today' },
-                          { label: 'TIME', value: '09:30 AM', icon: 'alarm' }].map(f => (
-                          <div key={f.label} className="space-y-2">
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider pl-1">{f.label}</label>
-                            <div className="relative">
-                              <input className="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 shadow-sm outline-none" defaultValue={f.value} />
-                              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary text-lg">{f.icon}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Visibility */}
-                    <div className="space-y-4">
-                      <label className="font-label text-xs tracking-widest text-on-surface-variant/70 uppercase block">Visibility Radius</label>
-                      {VISIBILITY.map(v => (
-                        <label key={v.id} className={`flex items-center p-4 bg-white rounded-2xl border cursor-pointer transition-all shadow-sm ${visibility === v.id ? 'border-primary/30' : 'border-transparent hover:border-primary/20'}`}>
-                          <input type="radio" name="visibility" checked={visibility === v.id} onChange={() => setVisibility(v.id)} className="w-5 h-5 text-primary" />
-                          <div className="ml-4">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm">{v.label}</span>
-                              <span className="material-symbols-outlined text-sm text-on-surface-variant">{v.icon}</span>
-                            </div>
-                            <p className="text-[10px] text-on-surface-variant">{v.desc}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                <textarea
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  className="w-full h-32 bg-transparent border-none resize-none focus:ring-0 text-lg p-4"
+                  placeholder="What's happening in your corner of the universe?"
+                />
+                
+                {/* File Upload Dropzone */}
+                <div className="mt-6">
+                  <FileDropzone
+                    onFilesSelected={handleFilesSelected}
+                    maxSize={50 * 1024 * 1024}
+                    accept="image/*,video/*"
+                    multiple={true}
+                    maxFiles={10}
+                  />
                 </div>
+
+                <div className="flex gap-4 mt-6 items-center relative">
+                  <button 
+                    onClick={() => setShowVisibilityPicker(!showVisibilityPicker)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+                      showVisibilityPicker ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface'
+                    }`}
+                  >
+                    {VISIBILITY_OPTIONS.find(v => v.value === visibility)?.icon}
+                    <span className="text-sm font-medium">
+                      {VISIBILITY_OPTIONS.find(v => v.value === visibility)?.label}
+                    </span>
+                  </button>
+                  
+                  <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="p-2 hover:bg-surface rounded-xl transition-colors text-primary">
+                    <Smile size={20} />
+                  </button>
+
+                  <button 
+                    onClick={() => setShowScheduler(!showScheduler)} 
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+                      scheduledDate ? 'bg-primary/10 text-primary font-medium' : 'text-on-surface-variant hover:bg-surface'
+                    }`}
+                  >
+                    <Clock size={20} /> {scheduledDate ? 'Scheduled' : 'Schedule'}
+                  </button>
+
+                  {showEmojiPicker && (
+                    <div className="absolute top-10 left-0 z-[105]">
+                      <EmojiPicker onEmojiClick={(e) => { setContent(c => c + e.emoji); setShowEmojiPicker(false) }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Visibility Picker */}
+                {showVisibilityPicker && (
+                  <div className="mt-6 p-4 bg-surface-container rounded-xl border border-outline-variant/15">
+                    <h4 className="text-sm font-bold text-on-surface mb-4">Who can see this post?</h4>
+                    <SegmentedControlVertical
+                      value={visibility}
+                      onChange={setVisibility}
+                      options={VISIBILITY_OPTIONS}
+                    />
+                  </div>
+                )}
+
+                {/* Scheduler */}
+                {showScheduler && (
+                  <div className="mt-6 p-4 bg-surface-container rounded-xl border border-outline-variant/15">
+                    <DateTimePicker
+                      value={scheduledDate}
+                      onChange={setScheduledDate}
+                      label="Schedule Post"
+                      placeholder="Pick a future date and time"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Footer */}
-              <div className="px-10 py-6 bg-surface-container-low/20 border-t border-outline-variant/10 flex items-center justify-between">
-                <button className="flex items-center gap-2 text-on-surface-variant hover:text-error transition-colors font-medium">
-                  <Trash2 size={18} /> Discard Draft
-                </button>
-                <div className="flex items-center gap-6">
-                  <button className="text-on-surface font-bold hover:underline underline-offset-4">Save Progress</button>
-                  <Button variant="primary" size="md" icon={<Rocket size={18} />} iconPosition="right" onClick={onClose}>
-                    Post Now
-                  </Button>
-                </div>
+              <div className="px-10 py-6 border-t flex justify-between">
+                <button onClick={onClose} className="text-on-surface-variant">Discard</button>
+                <Button onClick={handlePost} disabled={createPost.isPending || schedulePost.isPending || isUploading}>
+                  {createPost.isPending || schedulePost.isPending ? 'Launching...' : scheduledDate ? 'Schedule Post' : 'Post Now'}
+                </Button>
               </div>
             </div>
           </motion.div>
