@@ -33,15 +33,15 @@ export function TopBar({
   const authUser = useAuthStore((s) => s.user)
   const { data: profile } = useMyProfile()
   
-  // Use profile data if available, otherwise fall back to auth store
-  const user = profile ? {
-    name: profile.name || authUser?.name || 'User',
-    handle: profile.username ? `@${profile.username}` : '',
-    avatar: profile.avatar || authUser?.avatar || undefined,
-  } : {
-    name: authUser?.name || 'User',
-    handle: '',
-    avatar: authUser?.avatar || undefined,
+  // Use profile data if available, with proper avatar resolution
+  const avatarUrl = profile?.avatar || authUser?.avatar
+  const displayName = profile?.name || authUser?.name || 'User'
+  const username = profile?.username || ''
+  
+  const user = {
+    name: displayName,
+    handle: username ? `@${username}` : '',
+    avatar: avatarUrl || undefined,
   }
 
   const closeMenu  = useCallback(() => setMenuOpen(false), [])

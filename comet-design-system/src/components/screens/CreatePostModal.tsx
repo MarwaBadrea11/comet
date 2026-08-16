@@ -10,6 +10,7 @@ import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useCreatePost, useSchedulePost } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
+import { useMyProfile } from '../../hooks/useUserQuery'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 
@@ -30,6 +31,12 @@ type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
 export function CreatePostModal({ open, onClose, onCreated }: Props) {
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
+  const { data: profile } = useMyProfile()
+
+  // Get current user's avatar with proper fallback
+  const userAvatarUrl = profile?.avatar || user?.avatar
+  const displayName = profile?.name || user?.name || 'Me'
+  const myAvatarSrc = userAvatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`
 
   const [content, setContent] = useState('')
   const [visibility, setVisibility] = useState<Visibility>('PUBLIC')
@@ -64,7 +71,18 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
         
         try {
           const response = await api.post('/media/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+            },
+            transformRequest: [
+              (data, headers) => {
+                // Remove Content-Type to let browser set it with boundary
+                if (headers && data instanceof FormData) {
+                  delete headers['Content-Type']
+                }
+                return data
+              },
+            ],
           })
           if (response.data?.id) uploadedIds.push(String(response.data.id))
         } catch (err: any) {
@@ -155,7 +173,11 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
                 content: pendingText,
                 type: 'POST',
                 createdAt: new Date().toISOString(),
-                user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+                user: { 
+                  name: displayName, 
+                  avatar: myAvatarSrc,
+                  avatarMedia: myAvatarSrc ? { url: myAvatarSrc } : null
+                },
                 reactions: [],
                 comments: [],
                 hashtags: [],
@@ -187,7 +209,11 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
               content: pendingText,
               type: 'POST',
               createdAt: new Date().toISOString(),
-              user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+              user: { 
+                name: displayName, 
+                avatar: myAvatarSrc,
+                avatarMedia: myAvatarSrc ? { url: myAvatarSrc } : null
+              },
               reactions: [],
               comments: [],
               hashtags: [],
@@ -280,7 +306,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
                     <h4 className="text-sm font-bold text-on-surface mb-4">Who can see this post?</h4>
                     <SegmentedControlVertical
                       value={visibility}
-                      onChange={setVisibility}
+                      onChange={(val) => setVisibility(val as Visibility)}
                       options={VISIBILITY_OPTIONS}
                     />
                   </div>

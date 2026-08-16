@@ -32,7 +32,18 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
       formData.append('file', files[0])
 
       const response = await api.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+        },
+        transformRequest: [
+          (data, headers) => {
+            // Remove the Content-Type to let browser set it with boundary
+            if (headers && data instanceof FormData) {
+              delete headers['Content-Type']
+            }
+            return data
+          },
+        ],
       })
 
       if (response.data?.id) {

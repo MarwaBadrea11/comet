@@ -27,7 +27,12 @@ export interface UserProfile {
 }
 
 function normalizeProfile(data: any): UserProfile {
-  return { ...data, avatar: data?.avatarMedia?.url }
+  // Extract avatar URL from avatarMedia object if available
+  const avatarUrl = data?.avatarMedia?.url || data?.avatar || null
+  return { 
+    ...data, 
+    avatar: avatarUrl 
+  }
 }
 
 export interface UpdateProfileRequest {
@@ -71,7 +76,7 @@ export const userService = {
    */
   getUserById: async (id: string): Promise<UserProfile> => {
     const { data } = await api.get(`/user/${id}`)
-    return data
+    return normalizeProfile(data)
   },
 
   /**
@@ -102,6 +107,20 @@ export const userService = {
 }
 
 // ── Friendship ───────────────────────────────────────────────────────────────
+// Backend Reference: apps/api/src/friendship/friendship.controller.ts
+
+export interface PendingFriendRequest {
+  friendshipId: string
+  createdAt: string
+  requester: {
+    id: string
+    username: string
+    name: string
+    avatarMediaId?: string | null
+    isVerified?: boolean
+    status?: string
+  }
+}
 
 export const friendshipService = {
   /**
@@ -121,10 +140,12 @@ export const friendshipService = {
   },
 
   /**
-   * DELETE /friendship/request/:requestId/decline (cancel or decline)
+   * DELETE /friendship/request/:targetId/reject
+   * Deletes whatever PENDING friendship row exists between the two users —
+   * used both to decline an incoming request and to cancel one you sent.
    */
-  declineRequest: async (requesterId: string) => {
-    const { data } = await api.delete(`/friendship/request/${requesterId}/decline`)
+  rejectOrCancelRequest: async (targetId: string) => {
+    const { data } = await api.delete(`/friendship/request/${targetId}/reject`)
     return data
   },
 
@@ -137,31 +158,21 @@ export const friendshipService = {
   },
 
   /**
-   * GET /friendship/incoming-requests
+   * GET /friendship/requests/pending
+   * Incoming requests sent TO the current user (there is no backend endpoint
+   * to list requests the current user has SENT — see useFriendshipStatus for
+   * how outgoing state is tracked client-side instead).
    */
-  getIncomingRequests: async () => {
-    const { data } = await api.get('/friendship/incoming-requests')
-    return data
-  },
-
-  /**
-   * GET /friendship/outgoing-requests
-   */
-  getOutgoingRequests: async () => {
-    const { data } = await api.get('/friendship/outgoing-requests')
-    return data
-  },
-
-  /**
-   * GET /friendship/status/:userId - Check friendship status with another user
-   */
-  getStatus: async (userId: string) => {
-    const { data } = await api.get(`/friendship/status/${userId}`)
+  getPendingRequests: async (): Promise<PendingFriendRequest[]> => {
+    const { data } = await api.get('/friendship/requests/pending')
     return data
   },
 
   /**
    * GET /friendship/suggestions?limit=10
+   * Returns only {userId, mutualFriends, sharedInterests, score} — no display
+   * info. Callers needing name/avatar must resolve each userId separately
+   * (e.g. via userService.getUserById).
    */
   getSuggestions: async (limit = 10) => {
     const { data } = await api.get('/friendship/suggestions', { params: { limit } })
@@ -178,49 +189,41 @@ export const friendshipService = {
 }
 
 // ── Block ────────────────────────────────────────────────────────────────────
+// Backend Reference: apps/api/src/block/block.controller.ts
+
+export interface BlockRow {
+  id: string
+  blockerId: string
+  blockedId: string
+  createdAt: string
+}
 
 export const blockService = {
   /**
    * POST /block — body: { blockedId }
+   * Toggle: creates a block if none exists between these two users, or
+   * deletes the existing one (unblock) if it does. Same call for both
+   * directions — no need to resolve a block-row id first.
    */
-  block: async (blockedId: string) => {
+  toggle: async (blockedId: string): Promise<BlockRow> => {
     const { data } = await api.post('/block', { blockedId })
     return data
   },
 
   /**
-   * GET /block
+   * GET /block — every block row involving the current user, either
+   * direction (they blocked you, or you blocked them).
    */
-  getBlockedUsers: async () => {
+  getAll: async (): Promise<BlockRow[]> => {
     const { data } = await api.get('/block')
     return data
   },
 
   /**
-   * GET /block/:id
+   * DELETE /block/:id — id is the block ROW id (not a user id).
    */
-  getBlockById: async (id: string) => {
-    const { data } = await api.get(`/block/${id}`)
+  remove: async (blockRowId: string) => {
+    const { data } = await api.delete(`/block/${blockRowId}`)
     return data
-  },
-
-  /**
-   * DELETE /block/:blockId (unblock)
-   */
-  unblock: async (blockId: string) => {
-    const { data } = await api.delete(`/block/${blockId}`)
-    return data
-  },
-
-  /**
-   * Check if a user is blocked
-   */
-  isBlocked: async (userId: string): Promise<boolean> => {
-    try {
-      const blocked = await blockService.getBlockedUsers()
-      return blocked.some((b: any) => b.blockedId === userId)
-    } catch {
-      return false
-    }
   },
 }

@@ -105,7 +105,11 @@ export function HomeFeedScreen() {
               content: pendingText,
               type: 'POST',
               createdAt: new Date().toISOString(),
-              user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+              user: { 
+                name: user?.name || 'Me', 
+                avatar: myAvatarSrc,
+                avatarMedia: myAvatarSrc ? { url: myAvatarSrc } : null 
+              },
               reactions: [],
               comments: [],
               hashtags: []
@@ -121,7 +125,11 @@ export function HomeFeedScreen() {
             content: pendingText,
             type: 'POST',
             createdAt: new Date().toISOString(),
-            user: { name: user?.name || 'Me', avatar: user?.avatar || '' },
+            user: { 
+              name: user?.name || 'Me', 
+              avatar: myAvatarSrc,
+              avatarMedia: myAvatarSrc ? { url: myAvatarSrc } : null 
+            },
             reactions: [],
             comments: [],
             hashtags: []
@@ -196,11 +204,15 @@ export function HomeFeedScreen() {
     if (!commentText.trim() || !user) return
     const newComment = {
       id: `comment-${Date.now()}`,
+      userId: user.id,
       content: commentText.trim(),
       createdAt: new Date().toISOString(),
       likes: [],
       replies: [],
-      user: { name: user.name, avatar: user.avatar || '' }
+      user: { 
+        name: user.name, 
+        avatar: myAvatarSrc 
+      }
     }
     setAllLocalPosts(prev => prev.map(post => {
       if (String(post.id) === postId) return { ...post, comments: [...(post.comments || []), newComment] }
@@ -210,7 +222,8 @@ export function HomeFeedScreen() {
   }
 
   const avatarSeed = encodeURIComponent(user?.name ?? 'user')
-  const myAvatarSrc = profile?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`
+  const userAvatarUrl = profile?.avatar || user?.avatar
+  const myAvatarSrc = userAvatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] py-4 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12 overflow-x-hidden select-none">
@@ -346,7 +359,15 @@ export function HomeFeedScreen() {
                   <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)] overflow-hidden">
                     <div className="p-4 md:p-6 flex justify-between items-center">
                       <div className="flex gap-3 md:gap-4 items-center cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
-                        <img src={post.user?.avatarMedia?.url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`} alt={post.user?.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-outline-variant/10" />
+                        <img 
+                          src={
+                            post.userId === user?.id && myAvatarSrc
+                              ? myAvatarSrc
+                              : post.user?.avatarMedia?.url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`
+                          } 
+                          alt={post.user?.name} 
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-outline-variant/10" 
+                        />
                         <div>
                           <div className="flex items-center gap-1.5 md:gap-2">
                             <h3 className="font-bold text-on-surface text-sm md:text-base leading-tight">{post.user?.name || 'Anonymous'}</h3>
@@ -422,7 +443,15 @@ export function HomeFeedScreen() {
                               return (
                                 <div key={comment.id} className="space-y-2">
                                   <div className="flex gap-3 items-start text-xs">
-                                    <Avatar src={comment.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(comment.user?.name || 'Anonymous')}`} size="sm" className="w-7 h-7" />
+                                    <Avatar 
+                                      src={
+                                        comment.userId === user?.id && myAvatarSrc
+                                          ? myAvatarSrc
+                                          : comment.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(comment.user?.name || 'Anonymous')}`
+                                      } 
+                                      size="sm" 
+                                      className="w-7 h-7" 
+                                    />
                                     <div className="flex-1">
                                       <div className="bg-white p-2.5 rounded-xl border border-outline-variant/10 shadow-sm inline-block max-w-[95%]">
                                         <span className="font-bold text-on-surface block mb-0.5">{comment.user?.name}</span>
@@ -442,7 +471,15 @@ export function HomeFeedScreen() {
                                         {comment.replies.map((reply: any) => (
                                           <div key={reply.id} className="flex gap-2 items-start text-[11px]">
                                             <CornerDownRight size={13} className="text-outline-variant mt-1.5 shrink-0" />
-                                            <Avatar src={reply.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(reply.user?.name ?? 'user')}`} size="sm" className="h-5 w-5 rounded-lg shrink-0" />
+                                            <Avatar 
+                                              src={
+                                                reply.userId === user?.id && myAvatarSrc
+                                                  ? myAvatarSrc
+                                                  : reply.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(reply.user?.name ?? 'user')}`
+                                              } 
+                                              size="sm" 
+                                              className="h-5 w-5 rounded-lg shrink-0" 
+                                            />
                                             <div className="flex-1 bg-white/70 p-2 rounded-xl border border-outline-variant/5 shadow-sm">
                                               <span className="font-bold text-on-surface block mb-0.5">{reply.user?.name}</span>
                                               <p className="text-on-surface-variant">{reply.content}</p>

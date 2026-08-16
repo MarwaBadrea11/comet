@@ -17,15 +17,27 @@ export const mediaService = {
    * - Auto-generates unique filename on server
    * - Returns full media record with generated ID
    * 
-   * NOTE: Don't set Content-Type header manually - browser will set it with proper boundary
+   * IMPORTANT: We remove Content-Type header to let browser set it automatically with boundary
    */
   upload: async (file: File): Promise<Media> => {
     const formData = new FormData()
     formData.append('file', file) // ← MUST be 'file'
 
-    // ✅ FIX: Don't set Content-Type - let browser handle it with boundary
-    // The api interceptor will automatically add Authorization header
-    const { data } = await api.post('/media/upload', formData)
+    // Create a custom config that removes the default Content-Type header
+    const { data } = await api.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data', // Axios will add the boundary automatically
+      },
+      transformRequest: [
+        (data, headers) => {
+          // Remove the default application/json Content-Type
+          if (headers && data instanceof FormData) {
+            delete headers['Content-Type']
+          }
+          return data
+        },
+      ],
+    })
     return data
   },
 

@@ -39,14 +39,18 @@ export type {
 } from './comment.types'
 
 // Friendship types
+// Matches GET /friendship/requests/pending — see friendshipService.getPendingRequests
 export interface FriendRequest {
-  id: string
-  requesterId: string
-  receiverId: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  friendshipId: string
   createdAt: string
-  requester?: UserProfile
-  receiver?: UserProfile
+  requester: {
+    id: string
+    username: string
+    name: string
+    avatarMediaId?: string | null
+    isVerified?: boolean
+    status?: string
+  }
 }
 
 export interface FriendshipStatus {

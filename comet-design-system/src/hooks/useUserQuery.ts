@@ -13,14 +13,27 @@ import { queryKeys } from '../lib/queryKeys'
 
 export function useMe(options?: { enabled?: boolean }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
+  const setUser = useAuthStore((s) => s.setUser)
+  const currentUser = useAuthStore((s) => s.user)
 
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.auth.me(),
     queryFn:  () => userService.getMe(),
     enabled:  options?.enabled !== false && isAuthenticated,
-    // Sync the store user name/avatar if the full profile loads
     staleTime: 5 * 60_000, // profile data changes rarely
   })
+
+  // Sync the auth store with latest profile data including avatar
+  if (query.data && currentUser && query.data.avatar !== currentUser.avatar) {
+    setUser({
+      ...currentUser,
+      name: query.data.name,
+      avatar: query.data.avatar,
+      email: query.data.email,
+    })
+  }
+
+  return query
 }
 
 // Alias for useMe - for consistency with other hooks
