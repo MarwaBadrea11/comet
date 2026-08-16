@@ -9,6 +9,7 @@ import { DropdownMenu } from '../ui/DropdownMenu'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from '../../hooks/usePostsQuery'
+import { useStoriesFeed } from '../../hooks/useStoriesQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -31,19 +32,15 @@ export function HomeFeedScreen() {
   // 🌟 إضافة ستيت التحكم بمودال الستوري
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false)
 
-  // ── Local Storage Management ───────────────────────────────────────────────
+  // ── Local Storage Management (posts only — offline-first fallback) ────────
   const [allLocalPosts, setAllLocalPosts] = useState<any[]>(() => {
     const saved = localStorage.getItem('comet_global_local_posts')
     return saved ? JSON.parse(saved) : []
   })
 
-  const [allLocalStories, setAllLocalStories] = useState<any[]>(() => {
-    const saved = localStorage.getItem('comet_global_local_stories')
-    return saved ? JSON.parse(saved) : []
-  })
-
   // ── API Hooks ──────────────────────────────────────────────────────────────
   const { data: feed = [], isLoading } = useFeed()
+  const { data: storyGroups = [] } = useStoriesFeed()
   const createPost = useCreatePost()
   const reactToPost = useReactToPost()
   const savePost = useSavePost()
@@ -51,17 +48,9 @@ export function HomeFeedScreen() {
 
   // ── Data Merging (Local + Server) ──────────────────────────────────────────
   const currentAccountLocalPosts = allLocalPosts.filter((p: any) => p.userId === user?.id)
-  const serverPosts = feed.filter((p: any) => p.type === 'POST')
   const posts = [
-    ...currentAccountLocalPosts, 
-    ...serverPosts.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
-  ]
-
-  const currentAccountLocalStories = allLocalStories.filter((s: any) => s.userId === user?.id)
-  const serverStories = feed.filter((p: any) => p.type === 'STORY')
-  const stories = [
-    ...currentAccountLocalStories,
-    ...serverStories.filter((ss: any) => !currentAccountLocalStories.some(ls => String(ls.id) === String(ss.id)))
+    ...currentAccountLocalPosts,
+    ...feed.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
   ]
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -70,26 +59,15 @@ export function HomeFeedScreen() {
   }, [allLocalPosts])
 
   useEffect(() => {
-    localStorage.setItem('comet_global_local_stories', JSON.stringify(allLocalStories))
-  }, [allLocalStories])
-
-  useEffect(() => {
     const handleGlobalPostsUpdate = () => {
       const saved = localStorage.getItem('comet_global_local_posts')
       if (saved) setAllLocalPosts(JSON.parse(saved))
     }
 
-    const handleGlobalStoriesUpdate = () => {
-      const saved = localStorage.getItem('comet_global_local_stories')
-      if (saved) setAllLocalStories(JSON.parse(saved))
-    }
-
     window.addEventListener('comet_posts_updated', handleGlobalPostsUpdate)
-    window.addEventListener('comet_stories_updated', handleGlobalStoriesUpdate)
-    
+
     return () => {
       window.removeEventListener('comet_posts_updated', handleGlobalPostsUpdate)
-      window.removeEventListener('comet_stories_updated', handleGlobalStoriesUpdate)
     }
   }, [])
 
@@ -246,22 +224,22 @@ export function HomeFeedScreen() {
               <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-1.5">Add Story</span>
             </div>
 
-            {/* عرض الستوريز */}
-            {stories.map(story => (
-              <div 
-                key={story.id} 
-                onClick={() => navigate('/stories')} 
+            {/* عرض الستوريز (مجمّعة حسب صاحبها) */}
+            {storyGroups.map(group => (
+              <div
+                key={group.user.id}
+                onClick={() => navigate('/stories', { state: { startAuthorId: group.user.id } })}
                 className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-md">
                   <img
-                    src={story.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(story.user?.name || 'User')}`}
-                    alt={story.user?.name}
+                    src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(group.user.name || 'User')}`}
+                    alt={group.user.name}
                     className="w-full h-full rounded-full object-cover border-2 border-white"
                   />
                 </div>
                 <span className="text-[11px] md:text-xs font-bold text-on-surface mt-1.5 max-w-[65px] md:max-w-[80px] truncate">
-                  {story.user?.name || 'Anonymous'}
+                  {group.user.name || 'Anonymous'}
                 </span>
               </div>
             ))}

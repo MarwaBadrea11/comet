@@ -34,6 +34,13 @@ export const queryKeys = {
     mine: () => ['reactions', 'mine'] as const,
   },
 
+  // ── Stories ───────────────────────────────────────────────────────────────
+  stories: {
+    feed: ()                          => ['stories', 'feed'] as const,
+    mine: (includeExpired: boolean)   => ['stories', 'mine', includeExpired] as const,
+    byId: (id: string)                => ['stories', 'detail', id] as const,
+  },
+
   // ── Groups ────────────────────────────────────────────────────────────────
   groups: {
     all:   ()           => ['groups'] as const,
@@ -72,5 +79,13 @@ export const queryKeys = {
   media: {
     all:  () => ['media'] as const,
     byId: (id: string) => ['media', id] as const,
+  },
+
+  // ── Friends ───────────────────────────────────────────────────────────────
+  friends: {
+    all:              ()                     => ['friends'] as const,
+    myFriends:        (take?: number, skip?: number) => ['friends', 'mine', take, skip] as const,
+    pendingRequests:  ()                     => ['friends', 'pending'] as const,
+    suggestions:      (limit?: number)       => ['friends', 'suggestions', limit] as const,
   },
 }

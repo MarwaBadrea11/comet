@@ -1,7 +1,8 @@
 /**
  * User query hooks.
  *
- * useMe        — GET /user/me, enabled only when authenticated.
+ * useMe        — GET /user/profile, enabled only when authenticated.
+ * useMyProfile — Alias for useMe (for consistency with other hooks)
  * useUserById  — GET /user/:id
  */
 
@@ -21,6 +22,9 @@ export function useMe() {
     staleTime: 5 * 60_000, // profile data changes rarely
   })
 }
+
+// Alias for useMe - for consistency with other hooks
+export const useMyProfile = useMe
 
 export function useUserById(id: string) {
   return useQuery({

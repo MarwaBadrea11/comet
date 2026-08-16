@@ -8,7 +8,7 @@
  * toast.warning('Post already saved')
  */
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react'
 

@@ -8,46 +8,9 @@
  * - Prisma Schema: apps/api/prisma/schema.prisma (Reaction model)
  */
 
-// ── Enums ────────────────────────────────────────────────────────────────────
-
-/**
- * Enum for reaction types
- * Matches backend: enum ReactionType in Prisma schema
- */
-export enum ReactionType {
-  LIKE = 'LIKE',
-  LOVE = 'LOVE',
-  CARE = 'CARE',
-  HAHA = 'HAHA',
-  WOW = 'WOW',
-  SAD = 'SAD',
-  ANGRY = 'ANGRY',
-}
-
-/**
- * Enum for reactable entity types (polymorphic)
- * Matches backend: enum ReactableType in Prisma schema
- */
-export enum ReactableType {
-  POST = 'POST',
-  COMMENT = 'COMMENT',
-}
-
-// ── Core Types ───────────────────────────────────────────────────────────────
-
-/**
- * Reaction entity
- * Matches backend Reaction model from Prisma schema
- */
-export interface Reaction {
-  id: string
-  userId: string
-  reactableId: string
-  reactableType: ReactableType
-  reactionType: ReactionType
-  createdAt: string
-  deletedAt: string | null
-}
+// Re-export from post.types to avoid duplication
+import type { ReactionType, ReactableType, Reaction } from './post.types'
+export type { ReactionType, ReactableType, Reaction }
 
 // ── Request/Response Types ───────────────────────────────────────────────────
 

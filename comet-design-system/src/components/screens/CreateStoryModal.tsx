@@ -2,9 +2,9 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Image as ImageIcon, Loader2, Send } from 'lucide-react'
 import { Button } from '../ui/Button'
+import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
-import { useAuthStore } from '../../stores/authStore'
-import { useQueryClient } from '@tanstack/react-query'
+import { useCreateStory } from '../../hooks/useStoriesQuery'
 import api from '../../services/api'
 
 interface Props {
@@ -14,90 +14,70 @@ interface Props {
 }
 
 export function CreateStoryModal({ open, onClose, onCreated }: Props) {
-  const queryClient = useQueryClient()
-  const user = useAuthStore(s => s.user)
-
   const [content, setContent] = useState('')
   const [mediaUrl, setMediaUrl] = useState('')
+  const [mediaId, setMediaId] = useState('')
   const [isUploading, setIsUploading] = useState(false)
-  const [isPublishing, setIsPublishing] = useState(false)
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const createStory = useCreateStory()
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
     setIsUploading(true)
-    
+
     try {
       const formData = new FormData()
       formData.append('file', files[0])
-      
+
       const response = await api.post('/media/upload', formData, {
-        headers: { 'Content-Type': undefined },
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
-      
-      if (response.data?.url) {
-        setMediaUrl(response.data.url)
+
+      if (response.data?.id) {
+        setMediaId(String(response.data.id))
+        setMediaUrl(response.data.url ?? '')
       }
     } catch (err) {
-      console.error("Story image upload failed", err)
+      console.error('Story image upload failed', err)
+      toast.error('Failed to upload image. Please try again.')
     } finally {
       setIsUploading(false)
     }
   }
 
-  const handlePublishStory = async () => {
-    if (!content.trim() && !mediaUrl) return
-    setIsPublishing(true)
+  const handlePublishStory = () => {
+    if (!content.trim() && !mediaId) return
 
-    const pendingText = content.trim()
-    const pendingMedia = mediaUrl
-
-    const fallbackStory = {
-      id: `story-local-${Date.now()}`,
-      userId: user?.id,
-      type: 'STORY',
-      createdAt: new Date().toISOString(),
-      user: { 
-        name: user?.name || 'Me', 
-        avatar: user?.avatar || '' 
+    createStory.mutate(
+      {
+        content: content.trim() || undefined,
+        mediaIds: mediaId ? [mediaId] : undefined,
+        duration: 24,
       },
-      content: pendingText || undefined,
-      mediaUrl: pendingMedia || undefined,
-      media: pendingMedia ? [{ url: pendingMedia }] : [],
-      reactions: []
-    }
-
-    try {
-      const saved = localStorage.getItem('comet_global_local_stories')
-      const currentLocal = saved ? JSON.parse(saved) : []
-      localStorage.setItem('comet_global_local_stories', JSON.stringify([fallbackStory, ...currentLocal]))
-
-      window.dispatchEvent(new Event('comet_stories_updated'))
-
-      resetForm()
-      onClose()
-      onCreated?.()
-
-      await api.post('/posts', { 
-        content: pendingText, 
-        type: 'STORY', 
-        mediaIds: pendingMedia ? [pendingMedia] : [] 
-      })
-
-      await queryClient.invalidateQueries({ queryKey: ['feed'] })
-
-    } catch (err) {
-      console.error("Failed to sync story with server, kept locally.", err)
-    } finally {
-      setIsPublishing(false)
-    }
+      {
+        onSuccess: () => {
+          toast.success('Story published!')
+          resetForm()
+          onClose()
+          onCreated?.()
+        },
+        onError: (err: any) => {
+          if (err.response?.status === 400) {
+            toast.error('Invalid story content')
+          } else {
+            toast.error('Failed to publish story. Please try again.')
+          }
+        },
+      },
+    )
   }
 
   const resetForm = () => {
     setContent('')
     setMediaUrl('')
+    setMediaId('')
     setIsUploading(false)
   }
 
@@ -105,18 +85,18 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div 
-            {...motionVariants.modalBackdrop} 
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md" 
-            onClick={onClose} 
+          <motion.div
+            {...motionVariants.modalBackdrop}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md"
+            onClick={onClose}
           />
 
-          <motion.div 
-            {...motionVariants.scaleIn} 
+          <motion.div
+            {...motionVariants.scaleIn}
             className="fixed inset-0 z-[101] flex items-center justify-center p-4"
           >
             <div className="bg-[#0D0E12] text-white w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.8)]">
-              
+
               <div className="px-6 py-5 flex items-center justify-between border-b border-white/5">
                 <h2 className="font-headline text-lg font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                   Create Cosmic Story
@@ -127,7 +107,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
               </div>
 
               <div className="p-6 flex flex-col items-center justify-center flex-1 min-h-[300px] bg-neutral-950/40 relative">
-                
+
                 {isUploading ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -136,8 +116,8 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                 ) : mediaUrl ? (
                   <div className="relative w-full h-[280px] rounded-2xl overflow-hidden group">
                     <img src={mediaUrl} alt="Story preview" className="w-full h-full object-cover" />
-                    <button 
-                      onClick={() => setMediaUrl('')} 
+                    <button
+                      onClick={() => { setMediaUrl(''); setMediaId('') }}
                       className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 p-1.5 rounded-full transition-colors"
                     >
                       <X size={14} />
@@ -160,28 +140,28 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
               </div>
 
               <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
-                <button 
-                  onClick={() => fileInputRef.current?.click()} 
+                <button
+                  onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || !!mediaUrl}
                   className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-30"
                 >
                   <ImageIcon size={18} />
                   <span>Upload Image</span>
                 </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*"
                 />
 
-                <Button 
-                  onClick={handlePublishStory} 
-                  disabled={isUploading || isPublishing || (!content.trim() && !mediaUrl)}
+                <Button
+                  onClick={handlePublishStory}
+                  disabled={isUploading || createStory.isPending || (!content.trim() && !mediaId)}
                   className="px-5 h-10 rounded-xl bg-primary text-white font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-transform"
                 >
-                  {isPublishing ? 'Sharing...' : (
+                  {createStory.isPending ? 'Sharing...' : (
                     <>
                       <span>Share Now</span>
                       <Send size={14} />

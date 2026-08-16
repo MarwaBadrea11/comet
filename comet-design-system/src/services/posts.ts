@@ -1,7 +1,9 @@
 /**
- * Posts service — CRUD, feed, sharing, reactions, comments.
- * Maps to /post/*, /reaction/*, and /comment/* endpoints.
- * 
+ * Posts service — CRUD, feed, sharing, scheduling.
+ * Maps to /post/* endpoints.
+ *
+ * Reactions and comments live in services/reactions.ts and services/comments.ts.
+ *
  * REMOVED ENDPOINTS (backend refactor):
  * - /post/adding-post (use POST /post instead)
  * - /post/delete-media/:id (use DELETE /media/:id instead)
@@ -11,64 +13,7 @@
  */
 
 import api from './api'
-
-// ── Domain types ─────────────────────────────────────────────────────────────
-
-export interface MediaItem {
-  id: string
-  url: string
-  type: 'IMAGE' | 'VIDEO'
-}
-
-export interface PostUser {
-  id: string
-  name: string
-  avatar?: string
-}
-
-export interface Reaction {
-  id: string
-  type: string
-  userId: string
-}
-
-export interface Comment {
-  id: string
-  content: string
-  user: PostUser
-  createdAt?: string
-  parentId?: string | null
-}
-
-export interface Hashtag {
-  id: string
-  name: string
-}
-
-export interface Post {
-  id: string
-  content: string
-  type: 'POST' | 'STORY'
-  visibility: 'PUBLIC' | 'FRIENDS_ONLY' | 'PRIVATE'
-  feeling?: string
-  location?: string
-  createdAt: string
-  user: PostUser
-  media?: MediaItem[]
-  reactions?: Reaction[]
-  comments?: Comment[]
-  hashtags?: Hashtag[]
-}
-
-export interface FeedResponse {
-  posts?: Post[]
-  data?: Post[]
-  total?: number
-  page?: number
-  pageSize?: number
-}
-
-export type PostVisibility = 'PUBLIC' | 'FRIENDS_ONLY' | 'PRIVATE'
+import type { Post, PostVisibility } from '../types'
 
 // ── API calls ────────────────────────────────────────────────────────────────
 
@@ -121,7 +66,10 @@ export const postsService = {
 
   /**
    * POST /post/schedule
-   * Schedule a post for future publishing
+   * Schedule a post for future publishing.
+   * NOTE: the backend reads `scheduledTime` from the body (not `scheduledAt`) —
+   * we keep the app-facing param named `scheduledAt` for consistency with the
+   * rest of the codebase and remap it on the wire here.
    */
   schedulePost: async (payload: {
     content?: string
@@ -131,7 +79,8 @@ export const postsService = {
     mediaIds?: string[]
     scheduledAt: string // ISO 8601 timestamp
   }): Promise<Post> => {
-    const { data } = await api.post('/post/schedule', payload)
+    const { scheduledAt, ...rest } = payload
+    const { data } = await api.post('/post/schedule', { ...rest, scheduledTime: scheduledAt })
     return data
   },
 
@@ -181,70 +130,5 @@ export const postsService = {
    */
   updatePrivacy: async (postId: string, visibility: PostVisibility): Promise<void> => {
     await api.patch(`/post/update-privacy/${postId}`, { visibility })
-  },
-}
-
-// ── Reactions ────────────────────────────────────────────────────────────────
-
-export type ReactableType = 'POST' | 'COMMENT' | 'STORY'
-export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY'
-
-export const reactionsService = {
-  /**
-   * POST /reaction
-   * Body: { reactableId, reactableType, reactionType? }
-   */
-  react: async (reactableId: string, reactableType: ReactableType, reactionType: ReactionType = 'LIKE') => {
-    const { data } = await api.post('/reaction', { reactableId, reactableType, reactionType })
-    return data
-  },
-
-  /**
-   * GET /reaction
-   * Returns all reactions made by the current user.
-   */
-  getMyReactions: async () => {
-    const { data } = await api.get('/reaction')
-    return data
-  },
-}
-
-// ── Comments ─────────────────────────────────────────────────────────────────
-
-export const commentsService = {
-  /**
-   * POST /comment
-   */
-  createComment: async (payload: {
-    postId: string
-    userId: string
-    content: string
-    parentId?: string
-  }): Promise<Comment> => {
-    const { data } = await api.post('/comment', payload)
-    return data
-  },
-
-  /**
-   * GET /comment/:id
-   */
-  getComment: async (id: string): Promise<Comment> => {
-    const { data } = await api.get(`/comment/${id}`)
-    return data
-  },
-
-  /**
-   * PATCH /comment/:id
-   */
-  updateComment: async (id: string, payload: { content: string }): Promise<Comment> => {
-    const { data } = await api.patch(`/comment/${id}`, payload)
-    return data
-  },
-
-  /**
-   * DELETE /comment/:id
-   */
-  deleteComment: async (id: string): Promise<void> => {
-    await api.delete(`/comment/${id}`)
   },
 }

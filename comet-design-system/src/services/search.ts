@@ -7,11 +7,13 @@ import api from './api'
 
 export type SearchCategory = 'all' | 'users' | 'posts' | 'groups'
 
-export enum SearchType {
-  USERS = 'USERS',
-  POSTS = 'POSTS',
-  GROUPS = 'GROUPS',
-}
+export const SearchType = {
+  USERS: 'USERS',
+  POSTS: 'POSTS',
+  GROUPS: 'GROUPS',
+} as const
+
+export type SearchType = typeof SearchType[keyof typeof SearchType]
 
 export interface SearchResults {
   users?: Array<{ 

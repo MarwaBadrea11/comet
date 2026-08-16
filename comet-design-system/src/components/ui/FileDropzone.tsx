@@ -33,7 +33,6 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 export function FileDropzone({
   onFilesSelected,
-  onUploadComplete,
   maxSize = MAX_FILE_SIZE,
   accept = 'image/*,video/*',
   multiple = true,
@@ -141,12 +140,6 @@ export function FileDropzone({
       }
       return updated
     })
-  }, [])
-
-  const updateProgress = useCallback((fileId: string, progress: number) => {
-    setFiles(prev => prev.map(f => 
-      f.id === fileId ? { ...f, progress } : f
-    ))
   }, [])
 
   return (

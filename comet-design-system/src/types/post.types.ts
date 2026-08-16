@@ -5,34 +5,42 @@
 
 // ── Enums ────────────────────────────────────────────────────────────────────
 
-export enum PostVisibility {
-  PUBLIC = 'PUBLIC',
-  FRIENDS = 'FRIENDS',
-  ONLY_ME = 'ONLY_ME',
-  CUSTOM = 'CUSTOM',
-}
+export const PostVisibility = {
+  PUBLIC: 'PUBLIC',
+  FRIENDS: 'FRIENDS',
+  ONLY_ME: 'ONLY_ME',
+  CUSTOM: 'CUSTOM',
+} as const
 
-export enum ScheduledPostStatus {
-  DIRECT = 'DIRECT',
-  PENDING = 'PENDING',
-  PUBLISHED = 'PUBLISHED',
-  CANCELLED = 'CANCELLED',
-}
+export type PostVisibility = typeof PostVisibility[keyof typeof PostVisibility]
 
-export enum ReactionType {
-  LIKE = 'LIKE',
-  LOVE = 'LOVE',
-  CARE = 'CARE',
-  HAHA = 'HAHA',
-  WOW = 'WOW',
-  SAD = 'SAD',
-  ANGRY = 'ANGRY',
-}
+export const ScheduledPostStatus = {
+  DIRECT: 'DIRECT',
+  PENDING: 'PENDING',
+  PUBLISHED: 'PUBLISHED',
+  CANCELLED: 'CANCELLED',
+} as const
 
-export enum ReactableType {
-  POST = 'POST',
-  COMMENT = 'COMMENT',
-}
+export type ScheduledPostStatus = typeof ScheduledPostStatus[keyof typeof ScheduledPostStatus]
+
+export const ReactionType = {
+  LIKE: 'LIKE',
+  LOVE: 'LOVE',
+  CARE: 'CARE',
+  HAHA: 'HAHA',
+  WOW: 'WOW',
+  SAD: 'SAD',
+  ANGRY: 'ANGRY',
+} as const
+
+export type ReactionType = typeof ReactionType[keyof typeof ReactionType]
+
+export const ReactableType = {
+  POST: 'POST',
+  COMMENT: 'COMMENT',
+} as const
+
+export type ReactableType = typeof ReactableType[keyof typeof ReactableType]
 
 // ── User Types ───────────────────────────────────────────────────────────────
 
@@ -52,6 +60,7 @@ export interface Media {
   originalName: string
   mimeType: string
   path: string
+  url?: string
   size: string
   uploadedBy: string
   createdAt: string

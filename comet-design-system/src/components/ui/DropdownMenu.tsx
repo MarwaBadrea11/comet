@@ -13,7 +13,7 @@
  * </DropdownMenu>
  */
 
-import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface DropdownContextType {

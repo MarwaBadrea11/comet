@@ -8,34 +8,9 @@
  * - Prisma Schema: apps/api/prisma/schema.prisma (Comment model)
  */
 
-// ── Core Types ───────────────────────────────────────────────────────────────
-
-/**
- * Comment entity
- * Matches backend Comment model from Prisma schema
- */
-export interface Comment {
-  id: string
-  postId: string
-  userId: string
-  parentId: string | null // For nested replies
-  content: string
-  isEdited: boolean
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-  // Optional relations (populated based on query)
-  user?: {
-    id: string
-    name: string
-    username: string
-    avatarMediaId?: string | null
-  }
-  replies?: Comment[] // Nested replies
-  _count?: {
-    replies: number
-  }
-}
+// Re-export Comment from post.types to avoid duplication
+import type { Comment } from './post.types'
+export type { Comment }
 
 // ── Request/Response Types ───────────────────────────────────────────────────
 

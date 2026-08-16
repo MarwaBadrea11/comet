@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Loader2, Users, FileText, Hash, Trash2, X, Clock, Globe, UserCircle, MessageSquare, UsersRound } from 'lucide-react'
+import { Search, Loader2, Users, FileText, Hash, X, Clock, Globe, UserCircle, MessageSquare, UsersRound } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Avatar } from '../ui/Avatar'
@@ -41,7 +41,7 @@ export function SearchScreen() {
 
   const hasResults = results && (
     (results.users?.length ?? 0) + (results.posts?.length ?? 0) +
-    (results.groups?.length ?? 0) + (results.hashtags?.length ?? 0)
+    (results.groups?.length ?? 0)
   ) > 0
 
   return (
@@ -52,7 +52,7 @@ export function SearchScreen() {
           <Search className="absolute left-5 text-on-surface-variant/50 w-5 h-5" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             placeholder="Search the cosmos for curators, concepts, or constellations..."
             className="w-full pl-14 pr-12 h-14 bg-surface-container-high/40 rounded-2xl border-none text-base focus-visible:ring-2 focus-visible:ring-primary/20 transition-all placeholder:text-on-surface-variant/40"
           />
@@ -142,10 +142,10 @@ export function SearchScreen() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {results.users.map(u => (
                       <div key={u.id} className="flex items-center gap-4 p-4 rounded-2xl bg-white/60 border border-white/40 shadow-sm hover:shadow-md transition-all duration-300">
-                        <Avatar src={u.avatar} alt={u.name} size="md" className="border border-outline-variant/10 shadow-sm" />
+                        <Avatar src={u.avatarMediaId || undefined} alt={u.name} size="md" className="border border-outline-variant/10 shadow-sm" />
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-on-surface">{u.name}</span>
-                          <span className="text-xs text-on-surface-variant/60">@curator_{u.id}</span>
+                          <span className="text-xs text-on-surface-variant/60">@{u.username}</span>
                         </div>
                       </div>
                     ))}

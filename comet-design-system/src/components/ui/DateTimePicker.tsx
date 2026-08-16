@@ -14,7 +14,6 @@ export function DateTimePicker({
   onChange,
   minDate = new Date(),
   label = 'Schedule for',
-  placeholder = 'Select date and time',
 }: DateTimePickerProps) {
   const [dateStr, setDateStr] = useState('')
   const [timeStr, setTimeStr] = useState('')

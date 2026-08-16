@@ -7,13 +7,11 @@ import { Toggle } from '../ui/Toggle'
 import { useMe } from '../../hooks/useUserQuery'
 import { usePostsByUsername } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
-import { useUIStore } from '../../stores/uiStore'
 
 const TABS = ['Portfolio', 'Collections', 'Artifacts']
 
 export function ProfileScreen() {
   const user = useAuthStore(s => s.user)
-  const { theme } = useUIStore()
 
   const [tab, setTab]               = useState('Portfolio')
   const [privateOrbit, setPrivateOrbit] = useState(false)
@@ -21,9 +19,7 @@ export function ProfileScreen() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: profile, isLoading: loadingProfile } = useMe()
-  const { data: allPosts = [], isLoading: loadingPosts } = usePostsByUsername(profile?.name ?? '')
-
-  const posts = allPosts.filter(p => p.type === 'POST')
+  const { data: posts = [], isLoading: loadingPosts } = usePostsByUsername(profile?.username ?? '')
 
   const displayName = profile?.name ?? user?.name ?? 'Comet User'
   const avatarSrc   = profile?.avatar
@@ -117,7 +113,7 @@ export function ProfileScreen() {
                 {posts.map(post => (
                   <motion.div key={post.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }} className="group relative rounded-[2rem] overflow-hidden aspect-square bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 cursor-pointer">
                     {post.media?.[0] ? (
-                      <img src={post.media[0].url} alt={post.content} className="w-full h-full object-cover" />
+                      <img src={post.media[0].url} alt={post.content ?? ''} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center p-4">
                         <p className="text-xs font-medium text-on-surface-variant text-center line-clamp-4">{post.content}</p>

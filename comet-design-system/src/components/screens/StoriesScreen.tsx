@@ -1,38 +1,54 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { X, ChevronLeft, ChevronRight, Heart, Pause, Play } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
-import { useAuthStore } from '../../stores/authStore'
-import { useFeed } from '../../hooks/usePostsQuery'
+import { useStoriesFeed } from '../../hooks/useStoriesQuery'
+import { getStoryMediaUrl } from '../../services/stories'
 
 const STORY_DURATION = 5000 // 5 seconds per story
 
+interface DisplayStory {
+  id: string
+  content: string | null
+  createdAt: string
+  mediaUrl?: string
+  user: { id: string; name: string }
+}
+
 export function StoriesScreen() {
   const navigate = useNavigate()
-  const user = useAuthStore(s => s.user)
-  const { data: feed = [] } = useFeed()
+  const location = useLocation()
+  const startAuthorId = (location.state as { startAuthorId?: string } | null)?.startAuthorId
 
-  // ── Local Storage Stories ──
-  const [allLocalStories, setAllLocalStories] = useState<any[]>(() => {
-    const saved = localStorage.getItem('comet_global_local_stories')
-    return saved ? JSON.parse(saved) : []
-  })
+  const { data: storyGroups = [] } = useStoriesFeed()
 
-  // Merge local and server stories
-  const currentAccountLocalStories = allLocalStories.filter((s: any) => s.userId === user?.id)
-  const serverStories = feed.filter((p: any) => p.type === 'STORY')
-  const stories = [
-    ...currentAccountLocalStories,
-    ...serverStories.filter((ss: any) => !currentAccountLocalStories.some(ls => String(ls.id) === String(ss.id)))
-  ]
+  // ── Flatten grouped stories into one ordered playback list ──
+  const stories = useMemo<DisplayStory[]>(() => {
+    return storyGroups.flatMap(group =>
+      group.stories.map(story => ({
+        id: String(story.id),
+        content: story.post.content,
+        createdAt: story.createdAt,
+        mediaUrl: getStoryMediaUrl(story),
+        user: { id: String(group.user.id), name: group.user.name },
+      })),
+    )
+  }, [storyGroups])
 
   // ── States ──
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
-  const progressInterval = useRef<NodeJS.Timeout>()
+  const progressInterval = useRef<number | undefined>(undefined)
+
+  // Jump to the first story of the author that was tapped from the home feed strip.
+  useEffect(() => {
+    if (!startAuthorId || stories.length === 0) return
+    const idx = stories.findIndex(s => s.user.id === startAuthorId)
+    if (idx >= 0) setCurrentIndex(idx)
+  }, [startAuthorId, stories])
 
   const currentStory = stories[currentIndex]
 
@@ -55,17 +71,6 @@ export function StoriesScreen() {
       if (progressInterval.current) clearInterval(progressInterval.current)
     }
   }, [currentIndex, isPaused, currentStory])
-
-  // ── Sync with Local Storage ──
-  useEffect(() => {
-    const handleStoriesUpdate = () => {
-      const saved = localStorage.getItem('comet_global_local_stories')
-      if (saved) setAllLocalStories(JSON.parse(saved))
-    }
-
-    window.addEventListener('comet_stories_updated', handleStoriesUpdate)
-    return () => window.removeEventListener('comet_stories_updated', handleStoriesUpdate)
-  }, [])
 
   // ── Handlers ──
   const handleNext = () => {
@@ -95,6 +100,8 @@ export function StoriesScreen() {
   }
 
   const handleLike = () => {
+    // Story reactions aren't a backend concept (ReactableType is POST | COMMENT only) —
+    // this is a local, cosmetic-only heart toggle.
     setIsLiked(!isLiked)
   }
 
@@ -104,7 +111,7 @@ export function StoriesScreen() {
       <div className="fixed inset-0 bg-black flex items-center justify-center z-[200]">
         <div className="text-center space-y-4">
           <p className="text-white/60 text-lg">No stories yet</p>
-          <button 
+          <button
             onClick={handleClose}
             className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
           >
@@ -117,12 +124,12 @@ export function StoriesScreen() {
 
   return (
     <div className="fixed inset-0 bg-black z-[200] flex items-center justify-center overflow-hidden select-none">
-      
+
       {/* ── Background Blur Effect ── */}
       {currentStory?.mediaUrl && (
-        <div 
+        <div
           className="absolute inset-0 opacity-30 blur-3xl scale-110"
-          style={{ 
+          style={{
             backgroundImage: `url(${currentStory.mediaUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
@@ -132,7 +139,7 @@ export function StoriesScreen() {
 
       {/* ── Main Story Container ── */}
       <div className="relative w-full max-w-md h-full md:h-[90vh] md:rounded-3xl overflow-hidden shadow-2xl">
-        
+
         {/* ── Progress Bars ── */}
         <div className="absolute top-0 left-0 right-0 z-10 flex gap-1 p-3">
           {stories.map((_, idx) => (
@@ -140,8 +147,8 @@ export function StoriesScreen() {
               <motion.div
                 className="h-full bg-white"
                 initial={{ width: '0%' }}
-                animate={{ 
-                  width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' 
+                animate={{
+                  width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%'
                 }}
                 transition={{ duration: 0.1 }}
               />
@@ -152,8 +159,8 @@ export function StoriesScreen() {
         {/* ── Header ── */}
         <div className="absolute top-8 left-0 right-0 z-10 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Avatar 
-              src={currentStory?.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(currentStory?.user?.name || 'User')}`}
+            <Avatar
+              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(currentStory?.user?.name || 'User')}`}
               alt={currentStory?.user?.name}
               size="sm"
               className="w-10 h-10 border-2 border-white shadow-lg"
@@ -168,13 +175,13 @@ export function StoriesScreen() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={togglePause}
               className="p-2 bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white rounded-full transition-colors"
             >
               {isPaused ? <Play size={16} /> : <Pause size={16} />}
             </button>
-            <button 
+            <button
               onClick={handleClose}
               className="p-2 bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white rounded-full transition-colors"
             >
@@ -195,8 +202,8 @@ export function StoriesScreen() {
           >
             {currentStory?.mediaUrl ? (
               /* Image Story */
-              <img 
-                src={currentStory.mediaUrl} 
+              <img
+                src={currentStory.mediaUrl}
                 alt="Story content"
                 className="w-full h-full object-contain"
                 draggable={false}
@@ -224,7 +231,7 @@ export function StoriesScreen() {
         {/* ── Navigation Areas ── */}
         <div className="absolute inset-0 flex">
           {/* Left tap area */}
-          <button 
+          <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}
             className="flex-1 flex items-center justify-start pl-4 disabled:opacity-0"
@@ -233,9 +240,9 @@ export function StoriesScreen() {
               <ChevronLeft size={24} className="text-white" />
             </div>
           </button>
-          
+
           {/* Right tap area */}
-          <button 
+          <button
             onClick={handleNext}
             disabled={currentIndex === stories.length - 1}
             className="flex-1 flex items-center justify-end pr-4"
@@ -250,16 +257,16 @@ export function StoriesScreen() {
         <div className="absolute bottom-0 left-0 right-0 p-6 z-10 bg-gradient-to-t from-black/60 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex-1" />
-            <button 
+            <button
               onClick={handleLike}
               className={`p-3 rounded-full transition-all active:scale-90 ${
-                isLiked 
-                  ? 'bg-red-500 text-white' 
+                isLiked
+                  ? 'bg-red-500 text-white'
                   : 'bg-white/20 backdrop-blur-sm text-white hover:bg-white/30'
               }`}
             >
-              <Heart 
-                size={24} 
+              <Heart
+                size={24}
                 fill={isLiked ? 'currentColor' : 'none'}
               />
             </button>

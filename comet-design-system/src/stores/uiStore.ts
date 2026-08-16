@@ -14,12 +14,18 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 type Theme = 'light' | 'dark'
+type Language = 'en' | 'ar'
 
 interface UIState {
   // ── Theme ──────────────────────────────────────────────────────────────────
   theme: Theme
   setTheme:    (t: Theme) => void
   toggleTheme: () => void
+
+  // ── Language & RTL ─────────────────────────────────────────────────────────
+  language: Language
+  isRTL: boolean
+  setLanguage: (lang: Language) => void
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebarCollapsed: boolean
@@ -55,6 +61,16 @@ export const useUIStore = create<UIState>()(
           return { theme: next }
         }),
 
+      // ── Language & RTL ─────────────────────────────────────────────────────
+      language: 'en',
+      isRTL: false,
+      setLanguage: (lang) => {
+        const isRTL = lang === 'ar'
+        document.documentElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr')
+        document.documentElement.setAttribute('lang', lang)
+        set({ language: lang, isRTL })
+      },
+
       // ── Sidebar ────────────────────────────────────────────────────────────
       sidebarCollapsed: false,
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
@@ -76,6 +92,8 @@ export const useUIStore = create<UIState>()(
       // Only persist preferences — not ephemeral modal state
       partialize: (state) => ({
         theme:            state.theme,
+        language:         state.language,
+        isRTL:            state.isRTL,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
     },

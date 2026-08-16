@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider }           from './context/AuthContext'
 import { ToastProvider }          from './components/ui/Toast'
 import { ProtectedRoute }         from './components/layout/ProtectedRoute'
@@ -16,8 +17,27 @@ import { NotificationsScreen }    from './components/screens/NotificationsScreen
 import { SearchScreen }           from './components/screens/SearchScreen'
 import { GroupsScreen }           from './components/screens/GroupsScreen'
 import { SettingsScreen }         from './components/screens/SettingsScreen'
+import { useUIStore }             from './stores/uiStore'
 
 export default function App() {
+  const { theme, language, isRTL } = useUIStore()
+
+  // Initialize theme and language on mount
+  useEffect(() => {
+    const root = document.documentElement
+    
+    // Apply theme
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+    
+    // Apply language and direction
+    root.setAttribute('lang', language)
+    root.setAttribute('dir', isRTL ? 'rtl' : 'ltr')
+  }, [theme, language, isRTL])
+
   return (
     <BrowserRouter>
       {/*
@@ -112,6 +132,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

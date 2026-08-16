@@ -95,13 +95,13 @@ export function RegisterScreen() {
                   label="First Name"
                   placeholder="Elena"
                   value={formData.firstName}
-                  onChange={e => handleChange('firstName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('firstName', e.target.value)}
                 />
                 <Input
                   label="Last Name"
                   placeholder="Vance"
                   value={formData.lastName}
-                  onChange={e => handleChange('lastName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('lastName', e.target.value)}
                 />
               </div>
 
@@ -110,7 +110,7 @@ export function RegisterScreen() {
                 type="email"
                 placeholder="curator@comet.io"
                 value={formData.email}
-                onChange={e => handleChange('email', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('email', e.target.value)}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -118,13 +118,13 @@ export function RegisterScreen() {
                   label="City"
                   placeholder="New York"
                   value={formData.city}
-                  onChange={e => handleChange('city', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('city', e.target.value)}
                 />
                 <Input
                   label="Country"
                   placeholder="United States"
                   value={formData.country}
-                  onChange={e => handleChange('country', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('country', e.target.value)}
                 />
               </div>
 
@@ -134,7 +134,7 @@ export function RegisterScreen() {
                 </label>
                 <select
                   value={formData.gender}
-                  onChange={e => handleChange('gender', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleChange('gender', e.target.value)}
                   className="w-full h-12 px-4 rounded-xl border border-outline-variant/30 bg-white/50 text-on-surface font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all appearance-none cursor-pointer"
                 >
                   <option value="MALE">Male</option>
@@ -147,7 +147,7 @@ export function RegisterScreen() {
                 type="password"
                 placeholder="••••••••"
                 value={formData.password}
-                onChange={e => handleChange('password', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('password', e.target.value)}
               />
 
               <button

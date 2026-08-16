@@ -13,17 +13,17 @@ import {
   useSavePost,
   useSchedulePost,
   useSharePost,
-} from '@/hooks/usePostsQuery'
+} from '../hooks/usePostsQuery'
 import {
   useSearch,
   useSearchHistory,
   useClearAllHistory,
-} from '@/hooks/useSearchQuery'
+} from '../hooks/useSearchQuery'
 import {
   useUploadMedia,
   useDeleteMedia,
-} from '@/hooks/useMediaQuery'
-import type { PostVisibility, SearchCategory } from '@/types'
+} from '../hooks/useMediaQuery'
+import type { SearchCategory } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EXAMPLE 1: Feed with Pagination
@@ -37,7 +37,7 @@ export function FeedExample() {
     <div>
       <h2>My Feed</h2>
       {isLoading && <p>Loading...</p>}
-      {posts?.map((post) => (
+      {posts?.map((post: any) => (
         <div key={post.id}>
           <p>{post.content}</p>
           <small>by {post.user?.name}</small>
@@ -69,7 +69,7 @@ export function CreatePostExample() {
   const handleUpload = () => {
     selectedFiles.forEach((file) => {
       uploadMedia(file, {
-        onSuccess: (media) => {
+        onSuccess: (media: any) => {
           setUploadedMediaIds((prev) => [...prev, media.id])
         },
       })
@@ -79,7 +79,7 @@ export function CreatePostExample() {
   const handleSubmit = () => {
     createPost({
       content,
-      visibility: 'PUBLIC' as PostVisibility,
+      visibility: 'PUBLIC',
       feeling: '😊',
       location: 'New York',
       mediaIds: uploadedMediaIds,
@@ -138,7 +138,7 @@ export function SchedulePostExample() {
 
     schedulePost({
       content,
-      visibility: 'PUBLIC' as PostVisibility,
+      visibility: 'PUBLIC',
       scheduledAt, // ISO 8601 timestamp
     }, {
       onSuccess: () => {
@@ -208,7 +208,7 @@ export function SearchExample() {
       {results?.users && (
         <div>
           <h3>Users</h3>
-          {results.users.map((user) => (
+          {results.users.map((user: any) => (
             <div key={user.id}>{user.name} (@{user.username})</div>
           ))}
         </div>
@@ -217,7 +217,7 @@ export function SearchExample() {
       {results?.posts && (
         <div>
           <h3>Posts</h3>
-          {results.posts.map((post) => (
+          {results.posts.map((post: any) => (
             <div key={post.id}>{post.content}</div>
           ))}
         </div>
@@ -226,7 +226,7 @@ export function SearchExample() {
       {/* Search History */}
       <div>
         <h3>Recent Searches</h3>
-        {history?.map((item) => (
+        {history?.map((item: any) => (
           <div key={item.id} onClick={() => setQuery(item.query)}>
             {item.query}
           </div>
@@ -295,7 +295,7 @@ export function MediaManagementExample() {
     if (!selectedFile) return
 
     uploadMedia(selectedFile, {
-      onSuccess: (media) => {
+      onSuccess: (media: any) => {
         setUploadedMediaId(media.id)
         alert(`Media uploaded! ID: ${media.id}`)
       },

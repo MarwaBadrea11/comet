@@ -66,7 +66,7 @@ export function LoginScreen() {
                 type="email"
                 placeholder="curator@comet.io"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); reset() }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEmail(e.target.value); reset() }}
               />
 
               <div className="space-y-1">
@@ -82,7 +82,7 @@ export function LoginScreen() {
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); reset() }}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setPassword(e.target.value); reset() }}
                   trailingIcon={
                     <button
                       type="button"

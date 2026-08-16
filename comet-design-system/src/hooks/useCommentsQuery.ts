@@ -11,8 +11,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { commentsService } from '../services/comments'
-import { postsService, type Comment, type Post } from '../services/posts'
+import { postsService } from '../services/posts'
 import { queryKeys } from '../lib/queryKeys'
+import type { Comment, Post } from '../types'
 
 /**
  * Query: Get My Comments
@@ -89,11 +90,18 @@ export function useCreateComment() {
 
       const previous = qc.getQueryData<Comment[]>(queryKeys.comments.byPost(postId))
 
+      const now = new Date().toISOString()
       const optimistic: Comment = {
-        id:      `optimistic-${Date.now()}`,
+        id:        `optimistic-${Date.now()}`,
+        postId,
+        userId,
+        parentId:  null,
         content,
-        user:    { id: userId, name: 'You' },
-        createdAt: new Date().toISOString(),
+        isEdited:  false,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        user:      { id: userId, name: 'You', username: 'you' },
       }
 
       qc.setQueryData<Comment[]>(

@@ -13,6 +13,7 @@
  * useReactToPost    — POST /reaction  (optimistic update on the feed cache)
  * useSavePost       — POST /post/save/:postId
  * useHidePost       — POST /post/hide/:id
+ * useSharePost      — POST /post/share/:postId
  */
 
 import {
@@ -20,8 +21,10 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query'
-import { postsService, reactionsService, type Post } from '../services/posts'
+import { postsService } from '../services/posts'
+import { reactionsService } from '../services/reactions'
 import { queryKeys } from '../lib/queryKeys'
+import type { Post, ReactableType, ReactionType } from '../types'
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -137,8 +140,8 @@ export function useHidePost() {
 interface ReactPayload {
   postId:        string
   userId:        string
-  reactableType: 'POST' | 'COMMENT' | 'STORY'
-  reactionType:  'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY'
+  reactableType: ReactableType
+  reactionType:  ReactionType
   feedPage?:     number
   feedSize?:     number
 }
@@ -148,7 +151,7 @@ export function useReactToPost() {
 
   return useMutation({
     mutationFn: ({ postId, reactableType, reactionType }: ReactPayload) =>
-      reactionsService.react(postId, reactableType, reactionType),
+      reactionsService.toggleReaction({ reactableId: postId, reactableType, reactionType }),
 
     onMutate: async ({ postId, userId, reactionType, feedPage = 1, feedSize = 20 }) => {
       // إلغاء أي جلب طلبات قديم لكي لا يتم استبدال الحالة التفاؤلية
@@ -163,7 +166,18 @@ export function useReactToPost() {
           ...post,
           reactions: alreadyLiked
             ? (post.reactions ?? []).filter((r) => r.userId !== userId)
-            : [...(post.reactions ?? []), { id: `optimistic-${Date.now()}`, type: reactionType, userId }],
+            : [
+                ...(post.reactions ?? []),
+                {
+                  id: `optimistic-${Date.now()}`,
+                  userId,
+                  reactableId: postId,
+                  reactableType: 'POST',
+                  reactionType,
+                  createdAt: new Date().toISOString(),
+                  deletedAt: null,
+                },
+              ],
         }
       }
 
@@ -214,5 +228,26 @@ export function useReactToPost() {
 export function useSavePost() {
   return useMutation({
     mutationFn: (postId: string) => postsService.savePost(postId),
+  })
+}
+
+// ── Share post ────────────────────────────────────────────────────────────────
+
+export function useSharePost() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ postId, quoteContent }: { postId: string; quoteContent?: string }) =>
+      postsService.sharePost(postId, quoteContent),
+
+    onSuccess: (sharedPost) => {
+      if (sharedPost) {
+        qc.setQueriesData<Post[]>(
+          { queryKey: queryKeys.posts.feed(1, 20), exact: false },
+          (old) => (old ? [sharedPost, ...old] : [sharedPost]),
+        )
+      }
+      qc.invalidateQueries({ queryKey: queryKeys.posts.all() })
+    },
   })
 }

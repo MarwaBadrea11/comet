@@ -12,9 +12,14 @@ export interface Group {
   name: string
   description?: string
   privacy?: 'PUBLIC' | 'PRIVATE'
+  postsNeedApproval?: boolean
+  requiresApproval?: boolean
   membersCount?: number
   role?: string | null
+  membershipStatus?: 'ACTIVE' | 'PENDING' | null
   createdAt?: string
+  ownerId?: string
+  creatorId?: string  // Backend uses creatorId
 }
 
 // ── API calls ────────────────────────────────────────────────────────────────
@@ -44,6 +49,7 @@ export const groupsService = {
     name: string
     description?: string
     privacy?: 'PUBLIC' | 'PRIVATE'
+    postsNeedApproval?: boolean
   }): Promise<Group> => {
     const { data } = await api.post('/group', payload)
     return data
@@ -51,9 +57,51 @@ export const groupsService = {
 
   /**
    * POST /group/:id/join
+   * Throws structured errors for proper handling in UI
    */
   join: async (id: string): Promise<void> => {
+    try {
     await api.post(`/group/${id}/join`)
+    } catch (err: any) {
+      const status = err.response?.status
+      const message = err.response?.data?.message || err.message
+
+      // Enhanced error information for UI handling
+      if (status === 409) {
+        throw {
+          status: 409,
+          code: 'ALREADY_MEMBER',
+          message: message || 'You are already a member of this group',
+          originalError: err,
+        }
+      }
+
+      if (status === 403) {
+        throw {
+          status: 403,
+          code: 'FORBIDDEN',
+          message: message || 'You cannot join this group',
+          originalError: err,
+        }
+      }
+
+      if (status === 401) {
+        throw {
+          status: 401,
+          code: 'UNAUTHORIZED',
+          message: 'Please log in to join groups',
+          originalError: err,
+        }
+      }
+
+      // Re-throw with enhanced info
+      throw {
+        status: status || 500,
+        code: 'JOIN_FAILED',
+        message: message || 'Failed to join group',
+        originalError: err,
+      }
+    }
   },
 
   /**

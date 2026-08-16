@@ -10,10 +10,11 @@ import api from './api'
 export interface UserProfile {
   id: string
   name: string
+  username: string
   email?: string
   city?: string
   country?: string
-  gender?: 'MALE' | 'FEMALE'
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
   role?: string
   avatar?: string
   bio?: string
@@ -24,11 +25,11 @@ export interface UserProfile {
 
 export const userService = {
   /**
-   * GET /user/me
-   * Returns the authenticated user's full profile.
+   * GET /user/profile
+   * Returns the authenticated user's own full profile (req.user.id).
    */
   getMe: async (): Promise<UserProfile> => {
-    const { data } = await api.get('/user/me')
+    const { data } = await api.get('/user/profile')
     return data
   },
 

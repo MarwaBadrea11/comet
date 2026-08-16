@@ -8,9 +8,9 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { reactionsService } from '../services'
+import { reactionsService } from '../services/reactions'
 import { queryKeys } from '../lib/queryKeys'
-import type { ToggleReactionRequest, ReactionType, ReactableType } from '../types'
+import type { ToggleReactionRequest, ReactableType } from '../types'
 
 // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -197,7 +197,7 @@ export const useUserReactionStatus = (reactableId: string, reactableType: Reacta
   const { data: reactions, isLoading } = useMyReactionsQuery()
 
   const reaction = reactions?.find(
-    (r) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
+    (r: any) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
   )
 
   return {

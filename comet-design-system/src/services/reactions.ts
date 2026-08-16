@@ -108,7 +108,7 @@ export const hasUserReacted = (
   reactableType: ReactableType,
 ): boolean => {
   return reactions.some(
-    (r) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
+    (r: any) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
   )
 }
 
@@ -121,7 +121,7 @@ export const getUserReactionType = (
   reactableType: ReactableType,
 ): ReactionType | null => {
   const reaction = reactions.find(
-    (r) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
+    (r: any) => r.reactableId === reactableId && r.reactableType === reactableType && !r.deletedAt,
   )
   return reaction?.reactionType ?? null
 }

@@ -11,6 +11,7 @@ export interface Media {
   path: string
   size: string // BigInt as string
   uploadedBy: string
+  url?: string // Full URL to access the media file
   createdAt: string
   updatedAt: string
 }

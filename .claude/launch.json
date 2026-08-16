@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "social-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "C:\\Users\\marwa\\Desktop\\New folder (3)\\new\\apps\\api", "run", "dev"],
+      "port": 8000
+    },
+    {
+      "name": "social-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "C:\\Users\\marwa\\Desktop\\New folder (3)\\new\\apps\\web", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

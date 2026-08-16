@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Image as ImageIcon, Smile, Clock, Globe, Users, Lock } from 'lucide-react'
+import { X, Smile, Clock, Globe, Users, Lock } from 'lucide-react'
 import EmojiPicker from 'emoji-picker-react'
 import { Button } from '../ui/Button'
 import { DateTimePicker } from '../ui/DateTimePicker'
@@ -21,9 +21,9 @@ interface Props {
 
 const VISIBILITY_OPTIONS = [
   { value: 'PUBLIC' as const, label: 'Universal', description: 'Visible to every curator in the galaxy.', icon: <Globe size={18} /> },
-  { value: 'FRIENDS_ONLY' as const, label: 'Inner Circle', description: 'Only shared with your trusted satellite groups.', icon: <Users size={18} /> },
-  { value: 'PRIVATE' as const, label: 'Private Drift', description: 'Stored in your personal archive only.', icon: <Lock size={18} /> },
-] as const
+  { value: 'FRIENDS' as const, label: 'Inner Circle', description: 'Only shared with your trusted satellite groups.', icon: <Users size={18} /> },
+  { value: 'ONLY_ME' as const, label: 'Private Drift', description: 'Stored in your personal archive only.', icon: <Lock size={18} /> },
+]
 
 type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
 
@@ -42,7 +42,6 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
   const [showScheduler, setShowScheduler] = useState(false)
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false)
   
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const createPost = useCreatePost()
   const schedulePost = useSchedulePost()
 
@@ -178,7 +177,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
             onCreated?.()
             queryClient.invalidateQueries({ queryKey: ['feed'] }).catch(() => {})
           },
-          onError: (err: any) => {
+          onError: () => {
             const saved = localStorage.getItem('comet_global_local_posts')
             const currentLocal = saved ? JSON.parse(saved) : []
             
