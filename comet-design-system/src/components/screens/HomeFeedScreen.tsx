@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, MoreHorizontal, Plus, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2 } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
+import { useAvatarUrl } from '../ui/UserAvatar'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { DropdownMenu } from '../ui/DropdownMenu'
@@ -10,12 +11,20 @@ import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from '../../hooks/usePostsQuery'
 import { useStoriesFeed } from '../../hooks/useStoriesQuery'
+import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { CreateStoryModal } from './CreateStoryModal'
 
 const COSMIC_EMOJIS = ['✨', '🚀', '🪐', '🌌', '☄️', '🔮', '💜', '😎', '😂', '🔥', '👀', '💯']
+
+// Story authors only carry avatarMediaId (no nested avatarMedia object) —
+// resolve the real URL per item so map() stays rules-of-hooks safe.
+function StoryRingAvatar({ name, avatarMediaId }: { name?: string; avatarMediaId?: string | null }) {
+  const src = useAvatarUrl({ name, avatarMediaId })
+  return <img src={src} alt={name} className="w-full h-full rounded-full object-cover border-2 border-white" />
+}
 
 export function HomeFeedScreen() {
   const navigate = useNavigate()
@@ -39,6 +48,7 @@ export function HomeFeedScreen() {
   })
 
   // ── API Hooks ──────────────────────────────────────────────────────────────
+  const { data: profile } = useMe()
   const { data: feed = [], isLoading } = useFeed()
   const { data: storyGroups = [] } = useStoriesFeed()
   const createPost = useCreatePost()
@@ -200,6 +210,7 @@ export function HomeFeedScreen() {
   }
 
   const avatarSeed = encodeURIComponent(user?.name ?? 'user')
+  const myAvatarSrc = profile?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] py-4 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12 overflow-x-hidden select-none">
@@ -232,11 +243,7 @@ export function HomeFeedScreen() {
                 className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-md">
-                  <img
-                    src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(group.user.name || 'User')}`}
-                    alt={group.user.name}
-                    className="w-full h-full rounded-full object-cover border-2 border-white"
-                  />
+                  <StoryRingAvatar name={group.user.name} avatarMediaId={group.user.avatarMediaId} />
                 </div>
                 <span className="text-[11px] md:text-xs font-bold text-on-surface mt-1.5 max-w-[65px] md:max-w-[80px] truncate">
                   {group.user.name || 'Anonymous'}
@@ -249,7 +256,7 @@ export function HomeFeedScreen() {
           <div className="bg-white/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] p-4 md:p-6 border border-white/60 shadow-sm">
             <form onSubmit={handleCreatePost} className="space-y-4">
               <div className="flex gap-3 md:gap-4 items-start">
-                <Avatar src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`} alt="Me" size="sm" className="md:w-12 md:h-12" />
+                <Avatar src={myAvatarSrc} alt="Me" size="sm" className="md:w-12 md:h-12" />
                 <textarea
                   value={newPostContent}
                   onChange={e => setNewPostContent(e.target.value)}
@@ -322,7 +329,7 @@ export function HomeFeedScreen() {
                   <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)] overflow-hidden">
                     <div className="p-4 md:p-6 flex justify-between items-center">
                       <div className="flex gap-3 md:gap-4 items-center cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
-                        <img src={post.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`} alt={post.user?.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-outline-variant/10" />
+                        <img src={post.user?.avatarMedia?.url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`} alt={post.user?.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-outline-variant/10" />
                         <div>
                           <div className="flex items-center gap-1.5 md:gap-2">
                             <h3 className="font-bold text-on-surface text-sm md:text-base leading-tight">{post.user?.name || 'Anonymous'}</h3>
@@ -363,6 +370,16 @@ export function HomeFeedScreen() {
                     </div>
 
                     <div className="px-4 md:px-6 pb-4 text-on-surface text-sm md:text-base leading-relaxed whitespace-pre-wrap cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>{post.content}</div>
+
+                    {(post.media?.length ?? 0) > 0 && (
+                      <div className="px-4 md:px-6 pb-4 cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
+                        <div className="rounded-xl md:rounded-2xl overflow-hidden">
+                          {post.media!.map((m: any) => (
+                            <img key={m.id} src={m.url} alt="Post media" className="w-full object-cover max-h-[420px]" />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="p-2 md:p-3 px-4 md:px-6 flex justify-between items-center border-t border-outline-variant/5 text-[11px] font-bold text-on-surface-variant/80">
                       <div className="flex gap-1 md:gap-2 items-center">

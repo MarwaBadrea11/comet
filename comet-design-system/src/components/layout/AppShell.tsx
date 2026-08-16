@@ -17,7 +17,7 @@ const NO_FAB_ROUTES = ['/messages', '/settings', '/notifications', '/friend-requ
 function ShellInner({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const { collapsed, isMobile } = useSidebar()
-  const { t } = useTranslation()
+  const t = useTranslation()
   const isRTL = useUIStore((s) => s.isRTL)
 
   const user             = useAuthStore(s => s.user)

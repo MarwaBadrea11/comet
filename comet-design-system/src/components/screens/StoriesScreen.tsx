@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { X, ChevronLeft, ChevronRight, Heart, Pause, Play } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
+import { useAvatarUrl } from '../ui/UserAvatar'
 import { useStoriesFeed } from '../../hooks/useStoriesQuery'
 import { getStoryMediaUrl } from '../../services/stories'
 
@@ -13,7 +14,7 @@ interface DisplayStory {
   content: string | null
   createdAt: string
   mediaUrl?: string
-  user: { id: string; name: string }
+  user: { id: string; name: string; avatarMediaId?: string | null }
 }
 
 export function StoriesScreen() {
@@ -31,7 +32,7 @@ export function StoriesScreen() {
         content: story.post.content,
         createdAt: story.createdAt,
         mediaUrl: getStoryMediaUrl(story),
-        user: { id: String(group.user.id), name: group.user.name },
+        user: { id: String(group.user.id), name: group.user.name, avatarMediaId: group.user.avatarMediaId },
       })),
     )
   }, [storyGroups])
@@ -51,6 +52,10 @@ export function StoriesScreen() {
   }, [startAuthorId, stories])
 
   const currentStory = stories[currentIndex]
+  const currentAuthorAvatarUrl = useAvatarUrl({
+    name: currentStory?.user?.name,
+    avatarMediaId: currentStory?.user?.avatarMediaId,
+  })
 
   // ── Progress Timer ──
   useEffect(() => {
@@ -160,7 +165,7 @@ export function StoriesScreen() {
         <div className="absolute top-8 left-0 right-0 z-10 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Avatar
-              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(currentStory?.user?.name || 'User')}`}
+              src={currentAuthorAvatarUrl}
               alt={currentStory?.user?.name}
               size="sm"
               className="w-10 h-10 border-2 border-white shadow-lg"

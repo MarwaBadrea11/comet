@@ -8,6 +8,22 @@
 export type Language = 'en' | 'ar'
 
 export interface Translations {
+  sidebar: {
+    home: string
+    explore: string
+    messages: string
+    friendRequests: string
+    groups: string
+    notifications: string
+    settings: string
+    logo: string
+    create: string
+    createPost: string
+  }
+  header: {
+    searchPlaceholder: string
+    notifications: string
+  }
   settings: {
     title: string
     subtitle: string
@@ -86,6 +102,22 @@ export interface Translations {
 
 export const translations: Record<Language, Translations> = {
   en: {
+    sidebar: {
+      home: 'Home',
+      explore: 'Explore',
+      messages: 'Messages',
+      friendRequests: 'Friend Requests',
+      groups: 'Groups',
+      notifications: 'Notifications',
+      settings: 'Settings',
+      logo: 'Comet',
+      create: 'Create',
+      createPost: 'Create Post',
+    },
+    header: {
+      searchPlaceholder: 'Search Comet...',
+      notifications: 'Notifications',
+    },
     settings: {
       title: 'Settings & Privacy',
       subtitle: 'Manage your celestial presence, secure your orbit, and curate who witnesses your journey.',
@@ -162,6 +194,22 @@ export const translations: Record<Language, Translations> = {
     },
   },
   ar: {
+    sidebar: {
+      home: 'الرئيسية',
+      explore: 'استكشف',
+      messages: 'الرسائل',
+      friendRequests: 'طلبات الصداقة',
+      groups: 'المجموعات',
+      notifications: 'الإشعارات',
+      settings: 'الإعدادات',
+      logo: 'كوميت',
+      create: 'إنشاء',
+      createPost: 'إنشاء منشور',
+    },
+    header: {
+      searchPlaceholder: 'البحث في كوميت...',
+      notifications: 'الإشعارات',
+    },
     settings: {
       title: 'الإعدادات والخصوصية',
       subtitle: 'إدارة وجودك الرقمي، تأمين مدارك، وتحديد من يشاهد رحلتك.',

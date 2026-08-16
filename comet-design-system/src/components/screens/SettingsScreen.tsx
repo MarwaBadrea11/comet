@@ -5,8 +5,6 @@ import { Button } from '../ui/Button'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
-import { useUIStore } from '../../stores/uiStore'
-import type { Language } from '../../i18n/translations'
 
 interface PrivacySettings {
   msg: boolean

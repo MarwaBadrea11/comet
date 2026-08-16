@@ -24,7 +24,7 @@ export function TopBar({
   className,
 }: TopBarProps) {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const t = useTranslation()
   const isRTL = useUIStore((s) => s.isRTL)
   const { collapsed, isMobile, toggle, toggleMobile } = useSidebar()
   const [menuOpen, setMenuOpen] = useState(false)

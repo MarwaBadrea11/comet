@@ -4,6 +4,7 @@
  */
 
 import api from './api'
+import type { Media } from '../types/media.types'
 
 // ── Domain types ─────────────────────────────────────────────────────────────
 
@@ -16,9 +17,30 @@ export interface UserProfile {
   country?: string
   gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
   role?: string
-  avatar?: string
   bio?: string
+  /** Derived from avatarMedia.url — the field every screen already reads. */
+  avatar?: string
+  avatarMedia?: Media | null
+  coverMedia?: Media | null
   createdAt?: string
+}
+
+function normalizeProfile(data: any): UserProfile {
+  return { ...data, avatar: data?.avatarMedia?.url }
+}
+
+export interface UpdateProfileRequest {
+  name?: string
+  username?: string
+  bio?: string
+  phone?: string
+  dateOfBirth?: string
+  location?: string
+  city?: string
+  country?: string
+  gender?: UserProfile['gender']
+  avatarMediaId?: string
+  coverMediaId?: string
 }
 
 // ── API calls ────────────────────────────────────────────────────────────────
@@ -30,7 +52,17 @@ export const userService = {
    */
   getMe: async (): Promise<UserProfile> => {
     const { data } = await api.get('/user/profile')
-    return data
+    return normalizeProfile(data)
+  },
+
+  /**
+   * PATCH /user/profile
+   * Updates the authenticated user's own profile — including
+   * avatarMediaId/coverMediaId pointing at an already-uploaded media record.
+   */
+  updateProfile: async (payload: UpdateProfileRequest): Promise<UserProfile> => {
+    const { data } = await api.patch('/user/profile', payload)
+    return normalizeProfile(data)
   },
 
   /**
@@ -39,6 +71,32 @@ export const userService = {
   getUserById: async (id: string): Promise<UserProfile> => {
     const { data } = await api.get(`/user/${id}`)
     return data
+  },
+
+  /**
+   * Search user by email using the search endpoint
+   * This uses the general search API filtered for users
+   */
+  searchByEmail: async (email: string): Promise<UserProfile | null> => {
+    if (!email?.trim()) {
+      throw new Error('Email cannot be empty')
+    }
+    
+    const { data } = await api.get('/search-history', {
+      params: { 
+        q: email, 
+        category: 'users',
+        page: 1,
+        limit: 1
+      },
+    })
+    
+    // Return the first user if found, otherwise null
+    if (data?.users && data.users.length > 0) {
+      return normalizeProfile(data.users[0])
+    }
+    
+    return null
   },
 }
 

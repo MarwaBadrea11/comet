@@ -30,6 +30,15 @@ export const mediaService = {
   },
 
   /**
+   * GET /media/:id
+   * Returns the serialized media record (includes absolute `url`).
+   */
+  getById: async (mediaId: string): Promise<Media> => {
+    const { data } = await api.get(`/media/${mediaId}`)
+    return data
+  },
+
+  /**
    * DELETE /media/:id
    * Deletes a media file (only if uploaded by current user).
    * Backend checks ownership before deletion.

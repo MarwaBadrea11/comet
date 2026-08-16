@@ -3,16 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Loader2, Send, Trash2, CornerDownRight } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
+import { useAvatarUrl } from '../ui/UserAvatar'
 import { Button } from '../ui/Button'
 import { motionVariants } from '../../lib/theme'
 import { usePost, useReactToPost } from '../../hooks/usePostsQuery'
 import { usePostComments, useCreateComment } from '../../hooks/useCommentsQuery'
+import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
+
+// Comment authors only carry avatarMediaId (no nested avatarMedia object) —
+// resolve the real URL per item so map() stays rules-of-hooks safe.
+function CommentAvatar({ name, avatarMediaId, className }: { name?: string; avatarMediaId?: string | null; className?: string }) {
+  const src = useAvatarUrl({ name, avatarMediaId })
+  return <Avatar src={src} alt={name} size="md" className={className} />
+}
 
 export function PostDetailScreen() {
   const navigate = useNavigate()
   const { id }   = useParams<{ id: string }>()
   const user     = useAuthStore(s => s.user)
+  const { data: profile } = useMe()
 
   const [newComment, setNewComment] = useState('')
   const [showMenu, setShowMenu] = useState(false) 
@@ -233,7 +243,7 @@ export function PostDetailScreen() {
       <motion.article {...motionVariants.fadeIn} className="bg-surface-container-lowest rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 relative mb-12 md:mb-16 shadow-[0_20px_40px_rgba(107,70,192,0.06)] overflow-visible">
         <div className="absolute -top-5 -left-5 h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-surface-container-lowest p-1 shadow-xl">
           <Avatar
-            src={post.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`}
+            src={post.user?.avatarMedia?.url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(post.user?.name ?? 'User')}`}
             alt={post.user?.name} size="lg" className="rounded-2xl"
           />
         </div>
@@ -327,7 +337,7 @@ export function PostDetailScreen() {
 
       {/* Comment input */}
       <form onSubmit={handleSubmitComment} className="mb-8 md:mb-12 flex gap-3 md:gap-4 items-start">
-        <Avatar src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(user?.name ?? 'user')}`} alt="Me" size="sm" className="shrink-0 mt-1" />
+        <Avatar src={profile?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(user?.name ?? 'user')}`} alt="Me" size="sm" className="shrink-0 mt-1" />
         <div className="flex-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 shadow-sm flex items-end gap-2 px-4 py-3">
           <textarea
             value={newComment}
@@ -362,7 +372,7 @@ export function PostDetailScreen() {
                 <div key={c.id} className="space-y-4">
                   {/* التعليق الرئيسي */}
                   <div className="flex gap-4 md:gap-6">
-                    <Avatar src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(c.user?.name ?? 'user')}`} alt={c.user?.name} size="md" className="rounded-2xl shrink-0" />
+                    <CommentAvatar name={c.user?.name} avatarMediaId={c.user?.avatarMediaId} className="rounded-2xl shrink-0" />
                     <div className="flex-1 bg-surface-container-lowest p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-white/20">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-on-surface text-sm">{c.user?.name ?? 'Anonymous'}</span>
@@ -398,7 +408,7 @@ export function PostDetailScreen() {
                       {c.replies.map((reply: any) => (
                         <div key={reply.id} className="flex gap-3 items-start">
                           <CornerDownRight size={16} className="text-outline-variant mt-2 shrink-0" />
-                          <Avatar src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(reply.user?.name ?? 'user')}`} alt={reply.user?.name} size="sm" className="rounded-xl shrink-0" />
+                          <Avatar src={reply.user?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(reply.user?.name ?? 'user')}`} alt={reply.user?.name} size="sm" className="rounded-xl shrink-0" />
                           <div className="flex-1 bg-surface-container-low/60 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-bold text-on-surface text-xs">{reply.user?.name}</span>

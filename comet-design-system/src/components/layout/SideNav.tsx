@@ -5,8 +5,12 @@ import { Plus } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { useSidebar } from '../../providers/SidebarProvider'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { NavItem } from '../../types'
 import logoImg from '../../assets/logo.png'
+
+// Helper function to get avatar URL or undefined
+const getAvatarUrl = (user?: { avatar?: string }) => user?.avatar
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Layout constants — exported so TopBar & AppShell stay in sync
@@ -40,17 +44,17 @@ function NavTooltip({ label, visible }: { label: string; visible: boolean }) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, x: -6, scale: 0.92 }}
-          animate={{ opacity: 1, x: 0,  scale: 1 }}
-          exit={{    opacity: 0, x: -4, scale: 0.92 }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{    opacity: 0, scale: 0.92 }}
           transition={{ duration: 0.14, ease: 'easeOut' }}
-          // Sits to the right of the 64px rail
-          className="absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-[200] pointer-events-none"
+          // Sits to the right of the rail in LTR, left in RTL
+          className="absolute left-[calc(100%+10px)] rtl:left-auto rtl:right-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-[200] pointer-events-none"
         >
           <div className="relative px-3 py-1.5 rounded-lg bg-on-surface/90 text-inverse-on-surface text-[11px] font-label font-semibold tracking-wide whitespace-nowrap shadow-[0_6px_20px_rgba(0,0,0,0.18)]">
             {label}
-            {/* Left-pointing caret */}
-            <span className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-on-surface/90" />
+            {/* Pointing caret */}
+            <span className="absolute right-full rtl:right-auto rtl:left-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-on-surface/90 rtl:border-r-transparent rtl:border-l-on-surface/90" />
           </div>
         </motion.div>
       )}
@@ -174,6 +178,7 @@ interface SideNavProps {
 export function SideNav({ items, user, onCreateClick, className }: SideNavProps) {
   const { collapsed } = useSidebar()
   const navigate = useNavigate()
+  const t = useTranslation()
   const [createHovered, setCreateHovered] = useState(false)
 
   return (
@@ -182,14 +187,16 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
       initial={false}
       transition={sidebarSpring}
       className={cn(
-        'h-screen fixed left-0 top-0 z-50 overflow-hidden',
-        'bg-white/82 backdrop-blur-xl',
-        'border-r border-outline-variant/10',
-        'flex flex-col',
+        'h-screen fixed top-0 z-50 overflow-hidden',
+        'bg-surface-container-lowest/95 backdrop-blur-xl',
         'shadow-[2px_0_24px_rgba(107,70,192,0.07)]',
+        'flex flex-col',
+        'left-0 border-r rtl:left-auto rtl:right-0 rtl:border-r-0 rtl:border-l border-outline-variant/10',
         className,
       )}
-      style={{ minWidth: COLLAPSED_W }}
+      style={{ 
+        minWidth: COLLAPSED_W,
+      }}
     >
 
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
@@ -219,7 +226,7 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
           className="overflow-hidden min-w-0"
         >
           <p className="text-[8.5px] font-label font-semibold tracking-[0.16em] uppercase text-on-surface-variant whitespace-nowrap mt-0.5">
-            The Celestial Curator
+            {t('sidebar.logo')}
           </p>
         </motion.div>
       </div>
@@ -284,13 +291,13 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
                   exit={{    opacity: 0, width: 0 }}
                   className="overflow-hidden whitespace-nowrap text-sm font-bold"
                 >
-                  Create
+                  {t('sidebar.create')}
                 </motion.span>
               )}
             </AnimatePresence>
           </motion.button>
 
-          {collapsed && <NavTooltip label="Create Post" visible={createHovered} />}
+          {collapsed && <NavTooltip label={t('sidebar.createPost')} visible={createHovered} />}
         </div>
       </div>
 
@@ -304,7 +311,7 @@ export function SideNav({ items, user, onCreateClick, className }: SideNavProps)
               collapsed ? 'justify-center px-0' : 'gap-3 px-3',
             )}
           >
-            <Avatar src={user.avatar} alt={user.name} size="sm" className="shrink-0" />
+            <Avatar src={getAvatarUrl(user)} alt={user.name} size="sm" className="shrink-0" />
             <motion.div
               variants={labelVariants}
               animate={collapsed ? 'collapsed' : 'expanded'}

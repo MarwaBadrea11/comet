@@ -50,6 +50,7 @@ export interface PostUser {
   username: string
   email?: string
   avatarMediaId?: string | null
+  avatarMedia?: Media | null
 }
 
 // ── Media Types ──────────────────────────────────────────────────────────────
