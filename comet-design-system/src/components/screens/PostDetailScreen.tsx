@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Loader2, Send, Trash2, CornerDownRight } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Loader2, Send, Trash2, CornerDownRight, Edit } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Button } from '../ui/Button'
@@ -10,6 +10,7 @@ import { usePost, useReactToPost } from '../../hooks/usePostsQuery'
 import { usePostComments, useCreateComment } from '../../hooks/useCommentsQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
+import { EditPostModal } from './EditPostModal'
 
 // Comment authors only carry avatarMediaId (no nested avatarMedia object) —
 // resolve the real URL per item so map() stays rules-of-hooks safe.
@@ -31,6 +32,9 @@ export function PostDetailScreen() {
   // حالات التحكم بالردود محلياً
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  
+  // حالة التحكم بمودال التعديل
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // 1. مزامنة وقراءة الـ Local Storage المشترك لضمان بقاء التفاعلات والتعليقات المحلية محميّة
   const [allLocalPosts, setAllLocalPosts] = useState<any[]>(() => {
@@ -277,13 +281,22 @@ export function PostDetailScreen() {
                       className="absolute right-0 mt-2 w-48 bg-white border border-outline-variant/20 rounded-2xl shadow-xl p-2 z-50"
                     >
                       {isOwnPost ? (
-                        <button
-                          onClick={() => { setShowMenu(false); handleDeletePost(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <Trash2 size={16} />
-                          Delete Post
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setShowMenu(false); setIsEditModalOpen(true); }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mb-1"
+                          >
+                            <Edit size={16} />
+                            Edit Post
+                          </button>
+                          <button
+                            onClick={() => { setShowMenu(false); handleDeletePost(); }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          >
+                            <Trash2 size={16} />
+                            Delete Post
+                          </button>
+                        </>
                       ) : (
                         <p className="text-xs text-on-surface-variant p-2 text-center">No actions available</p>
                       )}
@@ -473,6 +486,20 @@ export function PostDetailScreen() {
           ))}
         </div>
       </div>
+
+      {/* Edit Post Modal */}
+      {isEditModalOpen && post && (
+        <EditPostModal
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          postId={String(post.id)}
+          onUpdated={() => {
+            setIsEditModalOpen(false)
+            // Refetch post data
+            window.location.reload()
+          }}
+        />
+      )}
     </div>
   )
 }

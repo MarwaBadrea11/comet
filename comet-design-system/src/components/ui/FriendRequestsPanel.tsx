@@ -1,7 +1,39 @@
 import { Loader2, UserPlus } from 'lucide-react'
 import { Avatar } from './Avatar'
+import { useAvatarUrl } from './UserAvatar'
 import { Button } from './Button'
 import { useIncomingRequests, useApproveFriendRequest, useDeclineFriendRequest } from '../../hooks/useFriendshipQuery'
+import type { FriendRequest } from '../../types'
+
+function RequestRow({ request, onApprove, onDecline, isPending }: {
+  request: FriendRequest
+  onApprove: () => void
+  onDecline: () => void
+  isPending: boolean
+}) {
+  const requester = request.requester
+  const avatarSrc = useAvatarUrl({ name: requester.name, avatarMediaId: requester.avatarMediaId })
+
+  return (
+    <div className="flex items-center gap-4 p-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-colors">
+      <Avatar src={avatarSrc} alt={requester.name} size="md" className="shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-on-surface truncate">{requester.name || 'Unknown User'}</p>
+        {requester.username && (
+          <p className="text-sm text-on-surface-variant">@{requester.username}</p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="primary" size="sm" onClick={onApprove} disabled={isPending}>
+          Accept
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDecline} disabled={isPending}>
+          Decline
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 export function FriendRequestsPanel() {
   const { data: requests = [], isLoading } = useIncomingRequests()
@@ -29,51 +61,15 @@ export function FriendRequestsPanel() {
 
   return (
     <div className="space-y-3">
-      {requests.map((request: any) => {
-        const requester = request.requester || {}
-        const displayName = requester.name || 'Unknown User'
-        const avatarSrc = requester.avatar || requester.avatarMedia?.url
-        const isPending = approve.isPending || decline.isPending
-
-        return (
-          <div
-            key={request.id}
-            className="flex items-center gap-4 p-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-colors"
-          >
-            <Avatar
-              src={avatarSrc}
-              alt={displayName}
-              size="md"
-              className="shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-on-surface truncate">{displayName}</p>
-              {requester.username && (
-                <p className="text-sm text-on-surface-variant">@{requester.username}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => approve.mutate(requester.id)}
-                disabled={isPending}
-                leftIcon={approve.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
-              >
-                Accept
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => decline.mutate(requester.id)}
-                disabled={isPending}
-              >
-                Decline
-              </Button>
-            </div>
-          </div>
-        )
-      })}
+      {requests.map((request) => (
+        <RequestRow
+          key={request.friendshipId}
+          request={request}
+          isPending={approve.isPending || decline.isPending}
+          onApprove={() => approve.mutate(request.requester.id)}
+          onDecline={() => decline.mutate(request.requester.id)}
+        />
+      ))}
     </div>
   )
 }

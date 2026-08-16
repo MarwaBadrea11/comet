@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, MoreHorizontal, Plus, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2 } from 'lucide-react'
+import { Heart, MessageCircle, MoreHorizontal, Plus, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2, Edit } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Badge } from '../ui/Badge'
@@ -16,6 +16,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { CreateStoryModal } from './CreateStoryModal'
+import { EditPostModal } from './EditPostModal'
 
 const COSMIC_EMOJIS = ['✨', '🚀', '🪐', '🌌', '☄️', '🔮', '💜', '😎', '😂', '🔥', '👀', '💯']
 
@@ -40,6 +41,9 @@ export function HomeFeedScreen() {
   
   // 🌟 إضافة ستيت التحكم بمودال الستوري
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false)
+  
+  // 🌟 إضافة ستيت التحكم بمودال تعديل البوست
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
 
   // ── Local Storage Management (posts only — offline-first fallback) ────────
   const [allLocalPosts, setAllLocalPosts] = useState<any[]>(() => {
@@ -385,6 +389,15 @@ export function HomeFeedScreen() {
                           </button>
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content align="right">
+                          {/* Show Edit option only for posts owned by current user */}
+                          {String(post.userId) === String(user?.id) && (
+                            <DropdownMenu.Item 
+                              onClick={() => setEditingPostId(String(post.id))}
+                              icon={<Edit size={16} />}
+                            >
+                              Edit Post
+                            </DropdownMenu.Item>
+                          )}
                           <DropdownMenu.Item 
                             onClick={() => handleSavePost(String(post.id))}
                             icon={<Bookmark size={16} />}
@@ -513,6 +526,19 @@ export function HomeFeedScreen() {
         open={isStoryModalOpen} 
         onClose={() => setIsStoryModalOpen(false)} 
       />
+
+      {/* ── Edit Post Modal ── */}
+      {editingPostId && (
+        <EditPostModal
+          open={!!editingPostId}
+          onClose={() => setEditingPostId(null)}
+          postId={editingPostId}
+          onUpdated={() => {
+            setEditingPostId(null)
+            refetch()
+          }}
+        />
+      )}
 
     </div>
   )

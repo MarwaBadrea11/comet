@@ -13,6 +13,7 @@ import { PostDetailScreen }       from './components/screens/PostDetailScreen'
 import { StoriesScreen }          from './components/screens/StoriesScreen'
 import { ProfileScreen }          from './components/screens/ProfileScreen'
 import { MessagesScreen }         from './components/screens/MessagesScreen'
+import { FriendRequestsScreen }   from './components/screens/FriendRequestsScreen'
 import { NotificationsScreen }    from './components/screens/NotificationsScreen'
 import { SearchScreen }           from './components/screens/SearchScreen'
 import { GroupsScreen }           from './components/screens/GroupsScreen'
@@ -101,6 +102,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AppShell><MessagesScreen /></AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/friend-requests"
+            element={
+              <ProtectedRoute>
+                <AppShell><FriendRequestsScreen /></AppShell>
               </ProtectedRoute>
             }
           />

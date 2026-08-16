@@ -112,14 +112,16 @@ export const userService = {
 export interface PendingFriendRequest {
   friendshipId: string
   createdAt: string
-  requester: {
-    id: string
-    username: string
-    name: string
-    avatarMediaId?: string | null
-    isVerified?: boolean
-    status?: string
-  }
+  requester: FriendSummary
+}
+
+export interface FriendSummary {
+  id: string
+  username: string
+  name: string
+  avatarMediaId?: string | null
+  isVerified?: boolean
+  status?: string
 }
 
 export const friendshipService = {
@@ -152,7 +154,7 @@ export const friendshipService = {
   /**
    * GET /friendship/my-friends?take=20&skip=0
    */
-  getMyFriends: async (take = 20, skip = 0) => {
+  getMyFriends: async (take = 20, skip = 0): Promise<FriendSummary[]> => {
     const { data } = await api.get('/friendship/my-friends', { params: { take, skip } })
     return data
   },
