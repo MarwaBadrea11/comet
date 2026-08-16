@@ -38,6 +38,48 @@ export type {
   CommentFormValues,
 } from './comment.types'
 
+// Friendship types
+export interface FriendRequest {
+  id: string
+  requesterId: string
+  receiverId: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  createdAt: string
+  requester?: UserProfile
+  receiver?: UserProfile
+}
+
+export interface FriendshipStatus {
+  isFriend: boolean
+  isPending: boolean
+  isOutgoing: boolean
+  requestId?: string
+}
+
+export interface BlockedUser {
+  id: string
+  blockerId: string
+  blockedId: string
+  createdAt: string
+  blocked?: UserProfile
+}
+
+export interface UserProfile {
+  id: string
+  name: string
+  username: string
+  email?: string
+  city?: string
+  country?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
+  role?: string
+  bio?: string
+  avatar?: string
+  avatarMedia?: any
+  coverMedia?: any
+  createdAt?: string
+}
+
 // UI Component Props
 export interface BaseProps {
   className?: string

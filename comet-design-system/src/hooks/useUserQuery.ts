@@ -11,13 +11,13 @@ import { userService, type UpdateProfileRequest } from '../services/user'
 import { useAuthStore } from '../stores/authStore'
 import { queryKeys } from '../lib/queryKeys'
 
-export function useMe() {
+export function useMe(options?: { enabled?: boolean }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
 
   return useQuery({
     queryKey: queryKeys.auth.me(),
     queryFn:  () => userService.getMe(),
-    enabled:  isAuthenticated,
+    enabled:  options?.enabled !== false && isAuthenticated,
     // Sync the store user name/avatar if the full profile loads
     staleTime: 5 * 60_000, // profile data changes rarely
   })
@@ -49,10 +49,11 @@ export function useUpdateProfile() {
   })
 }
 
-export function useUserById(id: string) {
+export function useUserById(id: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.user.byId(id),
     queryFn:  () => userService.getUserById(id),
-    enabled:  !!id,
+    enabled:  options?.enabled !== false && !!id,
+    staleTime: 60_000,
   })
 }

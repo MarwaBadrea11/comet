@@ -49,7 +49,7 @@ export function HomeFeedScreen() {
 
   // ── API Hooks ──────────────────────────────────────────────────────────────
   const { data: profile } = useMe()
-  const { data: feed = [], isLoading } = useFeed()
+  const { data: feed = [], isLoading, isError, error, refetch } = useFeed()
   const { data: storyGroups = [] } = useStoriesFeed()
   const createPost = useCreatePost()
   const reactToPost = useReactToPost()
@@ -314,6 +314,23 @@ export function HomeFeedScreen() {
             <div className="text-center py-16 space-y-4">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs text-on-surface-variant font-semibold">Traversing the cosmos...</p>
+            </div>
+          )}
+
+          {/* ── Error State ── */}
+          {isError && posts.length === 0 && (
+            <div className="text-center py-16 space-y-4 bg-white rounded-2xl border border-outline-variant/10">
+              <p className="text-sm text-on-surface-variant font-medium">
+                {(error as any)?.response?.data?.message ?? 'Failed to load your feed.'}
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => refetch()}>Reload</Button>
+            </div>
+          )}
+
+          {/* ── Empty State ── */}
+          {!isLoading && !isError && posts.length === 0 && (
+            <div className="text-center py-16 space-y-2 bg-white rounded-2xl border border-outline-variant/10">
+              <p className="text-sm text-on-surface-variant font-medium">No posts yet. Be the first to share something!</p>
             </div>
           )}
 

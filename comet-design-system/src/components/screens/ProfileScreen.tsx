@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Camera, Filter, Loader2 } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
 import { Toggle } from '../ui/Toggle'
+import { UserActions } from '../ui/UserActions'
 import { toast } from '../ui/Toast'
-import { useMe, useUpdateProfile } from '../../hooks/useUserQuery'
+import { useMe, useUpdateProfile, useUserById } from '../../hooks/useUserQuery'
 import { usePostsByUsername } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { mediaService } from '../../services/media'
@@ -13,7 +15,8 @@ import { mediaService } from '../../services/media'
 const TABS = ['Portfolio', 'Collections', 'Artifacts']
 
 export function ProfileScreen() {
-  const user = useAuthStore(s => s.user)
+  const { userId } = useParams<{ userId?: string }>()
+  const currentUser = useAuthStore(s => s.user)
 
   const [tab, setTab]               = useState('Portfolio')
   const [privateOrbit, setPrivateOrbit] = useState(false)
@@ -22,11 +25,17 @@ export function ProfileScreen() {
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: profile, isLoading: loadingProfile } = useMe()
+  const isOwnProfile = !userId || userId === currentUser?.id
+  const { data: myProfile, isLoading: loadingMe } = useMe({ enabled: isOwnProfile })
+  const { data: otherProfile, isLoading: loadingOther } = useUserById(userId ?? '', { enabled: !isOwnProfile })
+  
+  const profile = isOwnProfile ? myProfile : otherProfile
+  const isLoading = isOwnProfile ? loadingMe : loadingOther
+  
   const { data: posts = [], isLoading: loadingPosts } = usePostsByUsername(profile?.username ?? '')
   const updateProfile = useUpdateProfile()
 
-  const displayName = profile?.name ?? user?.name ?? 'Comet User'
+  const displayName = profile?.name ?? currentUser?.name ?? 'Comet User'
   const avatarSrc   = profile?.avatar
     ?? `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`
 
@@ -52,7 +61,7 @@ export function ProfileScreen() {
     }
   }
 
-  if (loadingProfile) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -72,54 +81,66 @@ export function ProfileScreen() {
         <div className="flex flex-col md:flex-row items-start md:items-end gap-6 md:gap-12">
           <div className="relative group">
             <Avatar src={avatarSrc} alt={displayName} size="xl" ring ringVariant="gradient" className="!w-32 !h-32 md:!w-48 md:!h-48" />
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={isUploadingAvatar}
-              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/40 transition-colors"
-              aria-label="Change profile picture"
-            >
-              {isUploadingAvatar ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
-              ) : (
-                <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-            </button>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarFileChange}
-              className="hidden"
-            />
+            {isOwnProfile && (
+              <>
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/40 transition-colors"
+                  aria-label="Change profile picture"
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarFileChange}
+                  className="hidden"
+                />
+              </>
+            )}
           </div>
           <div className="pb-0 md:pb-6 flex-1">
             <h1 className="text-3xl md:text-6xl font-bold font-headline tracking-tighter text-on-surface mb-2">{displayName}</h1>
             {(profile?.city || profile?.country) && (
               <p className="text-sm md:text-base text-on-surface-variant">{[profile?.city, profile?.country].filter(Boolean).join(', ')}</p>
             )}
-            {profile?.email && <p className="text-sm text-on-surface-variant/70 mt-1">{profile.email}</p>}
+            {isOwnProfile && profile?.email && <p className="text-sm text-on-surface-variant/70 mt-1">{profile.email}</p>}
           </div>
           <div className="pb-0 md:pb-6 flex gap-3">
-            <Button variant="primary" size="md">Edit Profile</Button>
-            <Button variant="secondary" size="md">Share</Button>
+            {isOwnProfile ? (
+              <>
+                <Button variant="primary" size="md">Edit Profile</Button>
+                <Button variant="secondary" size="md">Share</Button>
+              </>
+            ) : profile?.id ? (
+              <UserActions userId={profile.id} />
+            ) : null}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mt-12 md:mt-20">
           {/* Sidebar */}
           <aside className="lg:col-span-3 space-y-10">
-            <div className="bg-surface-container-highest/70 backdrop-blur-2xl p-6 md:p-8 rounded-[2rem] border border-outline-variant/15 shadow-[0_20px_40px_rgba(107,70,192,0.06)]">
-              <h3 className="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-6">Profile Settings</h3>
-              <div className="space-y-5">
-                <button onClick={() => avatarInputRef.current?.click()} className="w-full flex items-center justify-between group">
-                  <span className="text-on-surface font-medium group-hover:text-primary transition-colors">Edit Identity</span>
-                  <span className="material-symbols-outlined text-on-surface-variant">edit_note</span>
-                </button>
-                <div className="h-px bg-outline-variant/20" />
-                <Toggle checked={privateOrbit} onChange={setPrivateOrbit} label="Private Orbit" description="Only followers can view" />
-                <Toggle checked={showStats}    onChange={setShowStats}    label="Show Statistics" description="Display public metrics" />
+            {isOwnProfile && (
+              <div className="bg-surface-container-highest/70 backdrop-blur-2xl p-6 md:p-8 rounded-[2rem] border border-outline-variant/15 shadow-[0_20px_40px_rgba(107,70,192,0.06)]">
+                <h3 className="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-6">Profile Settings</h3>
+                <div className="space-y-5">
+                  <button onClick={() => avatarInputRef.current?.click()} className="w-full flex items-center justify-between group">
+                    <span className="text-on-surface font-medium group-hover:text-primary transition-colors">Edit Identity</span>
+                    <span className="material-symbols-outlined text-on-surface-variant">edit_note</span>
+                  </button>
+                  <div className="h-px bg-outline-variant/20" />
+                  <Toggle checked={privateOrbit} onChange={setPrivateOrbit} label="Private Orbit" description="Only followers can view" />
+                  <Toggle checked={showStats}    onChange={setShowStats}    label="Show Statistics" description="Display public metrics" />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               {[

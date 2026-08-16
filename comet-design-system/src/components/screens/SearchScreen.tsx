@@ -1,13 +1,16 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Search, Loader2, Mail, User, MapPin, CheckCircle, XCircle, Calendar } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Avatar } from '../ui/Avatar'
+import { UserActions } from '../ui/UserActions'
 import { useUserSearchByEmail } from '../../hooks/useUserSearchByEmail'
 
 
 export function SearchScreen() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const { searchByEmail, clearResults, user, isLoading, isError, error } = useUserSearchByEmail()
 
@@ -154,12 +157,15 @@ export function SearchScreen() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="primary" size="md" className="rounded-xl font-bold px-6">
+                  <Button 
+                    variant="secondary" 
+                    size="md" 
+                    className="rounded-xl font-bold px-6"
+                    onClick={() => navigate(`/profile/${user.id}`)}
+                  >
                     View Profile
                   </Button>
-                  <Button variant="secondary" size="md" className="rounded-xl font-bold px-6">
-                    Send Message
-                  </Button>
+                  {user.id && <UserActions userId={user.id} compact />}
                 </div>
               </div>
 

@@ -120,10 +120,42 @@ export const friendshipService = {
   },
 
   /**
+   * DELETE /friendship/request/:requestId/decline (cancel or decline)
+   */
+  declineRequest: async (requesterId: string) => {
+    const { data } = await api.delete(`/friendship/request/${requesterId}/decline`)
+    return data
+  },
+
+  /**
    * GET /friendship/my-friends?take=20&skip=0
    */
   getMyFriends: async (take = 20, skip = 0) => {
     const { data } = await api.get('/friendship/my-friends', { params: { take, skip } })
+    return data
+  },
+
+  /**
+   * GET /friendship/incoming-requests
+   */
+  getIncomingRequests: async () => {
+    const { data } = await api.get('/friendship/incoming-requests')
+    return data
+  },
+
+  /**
+   * GET /friendship/outgoing-requests
+   */
+  getOutgoingRequests: async () => {
+    const { data } = await api.get('/friendship/outgoing-requests')
+    return data
+  },
+
+  /**
+   * GET /friendship/status/:userId - Check friendship status with another user
+   */
+  getStatus: async (userId: string) => {
+    const { data } = await api.get(`/friendship/status/${userId}`)
     return data
   },
 
@@ -164,10 +196,30 @@ export const blockService = {
   },
 
   /**
-   * DELETE /block/:id
+   * GET /block/:id
    */
-  unblock: async (id: string) => {
-    const { data } = await api.delete(`/block/${id}`)
+  getBlockById: async (id: string) => {
+    const { data } = await api.get(`/block/${id}`)
     return data
+  },
+
+  /**
+   * DELETE /block/:blockId (unblock)
+   */
+  unblock: async (blockId: string) => {
+    const { data } = await api.delete(`/block/${blockId}`)
+    return data
+  },
+
+  /**
+   * Check if a user is blocked
+   */
+  isBlocked: async (userId: string): Promise<boolean> => {
+    try {
+      const blocked = await blockService.getBlockedUsers()
+      return blocked.some((b: any) => b.blockedId === userId)
+    } catch {
+      return false
+    }
   },
 }

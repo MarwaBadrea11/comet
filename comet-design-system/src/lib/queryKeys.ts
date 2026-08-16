@@ -88,4 +88,19 @@ export const queryKeys = {
     pendingRequests:  ()                     => ['friends', 'pending'] as const,
     suggestions:      (limit?: number)       => ['friends', 'suggestions', limit] as const,
   },
+
+  // ── Friendship (requests & status) ────────────────────────────────────────
+  friendship: {
+    friends:      ()                 => ['friendship', 'friends'] as const,
+    incoming:     ()                 => ['friendship', 'incoming'] as const,
+    outgoing:     ()                 => ['friendship', 'outgoing'] as const,
+    suggestions:  ()                 => ['friendship', 'suggestions'] as const,
+    status:       (userId: string)   => ['friendship', 'status', userId] as const,
+  },
+
+  // ── Block ─────────────────────────────────────────────────────────────────
+  block: {
+    list:  ()           => ['block', 'list'] as const,
+    byId:  (id: string) => ['block', id] as const,
+  },
 }
