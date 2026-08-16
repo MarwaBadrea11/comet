@@ -78,6 +78,7 @@ export interface UserProfile {
   avatarMedia?: any
   coverMedia?: any
   createdAt?: string
+  friendsCount?: number
 }
 
 // UI Component Props

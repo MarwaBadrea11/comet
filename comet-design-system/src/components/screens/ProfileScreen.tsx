@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Camera, Filter, Loader2 } from 'lucide-react'
+import { Camera, Loader2, Users, FileText } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
-import { Toggle } from '../ui/Toggle'
 import { UserActions } from '../ui/UserActions'
 import { toast } from '../ui/Toast'
 import { useMe, useUpdateProfile, useUserById } from '../../hooks/useUserQuery'
@@ -12,15 +11,13 @@ import { usePostsByUsername } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { mediaService } from '../../services/media'
 
-const TABS = ['Portfolio', 'Collections', 'Artifacts']
+const TABS = ['Portfolio']
 
 export function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>()
   const currentUser = useAuthStore(s => s.user)
 
   const [tab, setTab]               = useState('Portfolio')
-  const [privateOrbit, setPrivateOrbit] = useState(false)
-  const [showStats, setShowStats]   = useState(true)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
@@ -111,6 +108,20 @@ export function ProfileScreen() {
               <p className="text-sm md:text-base text-on-surface-variant">{[profile?.city, profile?.country].filter(Boolean).join(', ')}</p>
             )}
             {isOwnProfile && profile?.email && <p className="text-sm text-on-surface-variant/70 mt-1">{profile.email}</p>}
+            
+            {/* Stats Metrics */}
+            <div className="flex gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <span className="text-lg font-bold text-on-surface">{loadingPosts ? '…' : posts.length}</span>
+                <span className="text-sm text-on-surface-variant">Posts</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
+                <span className="text-sm text-on-surface-variant">Friends</span>
+              </div>
+            </div>
           </div>
           <div className="pb-0 md:pb-6 flex gap-3">
             {isOwnProfile ? (
@@ -125,38 +136,8 @@ export function ProfileScreen() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mt-12 md:mt-20">
-          {/* Sidebar */}
-          <aside className="lg:col-span-3 space-y-10">
-            {isOwnProfile && (
-              <div className="bg-surface-container-highest/70 backdrop-blur-2xl p-6 md:p-8 rounded-[2rem] border border-outline-variant/15 shadow-[0_20px_40px_rgba(107,70,192,0.06)]">
-                <h3 className="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-6">Profile Settings</h3>
-                <div className="space-y-5">
-                  <button onClick={() => avatarInputRef.current?.click()} className="w-full flex items-center justify-between group">
-                    <span className="text-on-surface font-medium group-hover:text-primary transition-colors">Edit Identity</span>
-                    <span className="material-symbols-outlined text-on-surface-variant">edit_note</span>
-                  </button>
-                  <div className="h-px bg-outline-variant/20" />
-                  <Toggle checked={privateOrbit} onChange={setPrivateOrbit} label="Private Orbit" description="Only followers can view" />
-                  <Toggle checked={showStats}    onChange={setShowStats}    label="Show Statistics" description="Display public metrics" />
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { value: loadingPosts ? '…' : String(posts.length), label: 'Posts'  },
-                { value: profile?.gender ?? '–',                    label: 'Gender' },
-              ].map(s => (
-                <motion.div key={s.label} whileHover={{ y: -2 }} className="bg-surface-container-low p-6 rounded-2xl">
-                  <span className="block text-2xl md:text-3xl font-bold font-headline text-primary">{s.value}</span>
-                  <span className="text-xs font-label uppercase text-on-surface-variant opacity-60">{s.label}</span>
-                </motion.div>
-              ))}
-            </div>
-          </aside>
-
           {/* Gallery */}
-          <div className="lg:col-span-9 pb-20">
+          <div className="lg:col-span-12 pb-20">
             <div className="flex items-center justify-between mb-8 md:mb-12">
               <div className="flex gap-4 md:gap-8">
                 {TABS.map(t => (
@@ -165,10 +146,6 @@ export function ProfileScreen() {
                   </button>
                 ))}
               </div>
-              <button className="flex items-center gap-2 text-primary font-bold">
-                <Filter size={18} />
-                <span className="text-sm uppercase tracking-wider hidden sm:inline">Sort by Aura</span>
-              </button>
             </div>
 
             {loadingPosts ? (

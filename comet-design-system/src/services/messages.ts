@@ -1,40 +1,67 @@
 /**
  * Messaging service — conversations and messages.
  * Maps to /conversation/* and /message/* endpoints.
+ *
+ * Backend Reference:
+ * - apps/api/src/conversation/conversation.controller.ts + conversation.service.ts
+ * - apps/api/src/message/message.controller.ts + message.service.ts
  */
 
 import api from './api'
+import type { Media } from '../types/media.types'
 
 // ── Domain types ─────────────────────────────────────────────────────────────
 
-export interface ConversationParticipant {
+export interface MessageSender {
   id: string
   name: string
-  avatar?: string
+  username: string
+  avatarMediaId?: string | null
+}
+
+export interface MessageAttachment {
+  id: string
+  mediaId: string
+  url?: string
+  mimeType?: string
+  media?: Media
+}
+
+export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE' | 'STICKER' | 'VOICE' | 'LOCATION'
+
+export interface MessageItem {
+  id: string
+  content?: string | null
+  messageType?: MessageType
+  conversationId: string
+  senderId: string
+  sender?: MessageSender
+  replyToId?: string | null
+  clientMessageId?: string | null
+  isEdited?: boolean
+  isDeletedForEveryone?: boolean
+  createdAt?: string
+  attachments?: MessageAttachment[]
+}
+
+export interface ConversationParticipant {
+  id: string
+  userId: string
+  role: 'ADMIN' | 'MEMBER'
+  user: MessageSender
 }
 
 export interface Conversation {
   id: string
-  name?: string
-  description?: string
   type?: 'DIRECT' | 'GROUP'
+  name?: string | null
+  description?: string | null
+  avatarMediaId?: string | null
+  creator?: MessageSender
   participants?: ConversationParticipant[]
-  lastMessage?: MessageItem
+  lastMessage?: MessageItem | null
   unreadCount?: number
-  createdAt?: string
-  updatedAt?: string
-}
-
-export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'
-
-export interface MessageItem {
-  id: string
-  content?: string
-  messageType?: MessageType
-  conversationId: string
-  senderId?: string
-  sender?: ConversationParticipant
-  replyToId?: string
+  myParticipantRole?: 'ADMIN' | 'MEMBER'
   createdAt?: string
   updatedAt?: string
 }
@@ -44,12 +71,16 @@ export interface MessageItem {
 export const conversationService = {
   /**
    * POST /conversation
-   * Create a new direct or group conversation.
+   * Create a new conversation. type is inferred (DIRECT for 2 participants,
+   * GROUP otherwise) if omitted. Creating a DIRECT chat with an existing pair
+   * reuses the existing conversation instead of duplicating it.
    */
   create: async (payload: {
     participantIds: string[]
     type?: 'DIRECT' | 'GROUP'
     name?: string
+    description?: string
+    avatarMediaId?: string
   }): Promise<Conversation> => {
     const { data } = await api.post('/conversation', payload)
     return data
@@ -73,6 +104,30 @@ export const conversationService = {
   },
 
   /**
+   * PATCH /conversation/:id — rename/describe a conversation (GROUP requires admin).
+   */
+  update: async (id: string, payload: { name?: string; description?: string; avatarMediaId?: string }): Promise<Conversation> => {
+    const { data } = await api.patch(`/conversation/${id}`, payload)
+    return data
+  },
+
+  /**
+   * POST /conversation/:id/participants — add/re-activate a member (GROUP, admin only).
+   */
+  addParticipant: async (id: string, userId: string, role?: 'ADMIN' | 'MEMBER'): Promise<Conversation> => {
+    const { data } = await api.post(`/conversation/${id}/participants`, { userId, role })
+    return data
+  },
+
+  /**
+   * DELETE /conversation/:id/participants/:userId — remove a member (GROUP, admin only).
+   */
+  removeParticipant: async (id: string, userId: string): Promise<Conversation> => {
+    const { data } = await api.delete(`/conversation/${id}/participants/${userId}`)
+    return data
+  },
+
+  /**
    * POST /conversation/:id/leave
    */
   leave: async (id: string): Promise<void> => {
@@ -85,8 +140,8 @@ export const conversationService = {
 export const messageService = {
   /**
    * POST /message
-   * Send a message to an existing conversation.
-   * Body: { conversationId, content?, messageType?, replyToId?, clientMessageId? }
+   * Send a message to an existing conversation. mediaIds attaches
+   * already-uploaded media (images/files) to the message.
    */
   send: async (payload: {
     conversationId: string
@@ -94,6 +149,7 @@ export const messageService = {
     messageType?: MessageType
     replyToId?: string
     clientMessageId?: string
+    mediaIds?: string[]
   }): Promise<MessageItem> => {
     const { data } = await api.post('/message', payload)
     return data

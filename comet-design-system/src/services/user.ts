@@ -23,6 +23,7 @@ export interface UserProfile {
   avatarMedia?: Media | null
   coverMedia?: Media | null
   createdAt?: string
+  friendsCount?: number
 }
 
 function normalizeProfile(data: any): UserProfile {

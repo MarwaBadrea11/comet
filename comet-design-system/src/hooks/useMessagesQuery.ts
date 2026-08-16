@@ -3,12 +3,16 @@
  *
  * useConversations      — GET /conversation/mine
  * useMessages           — GET /message/conversation/:id
- * useSendMessage        — POST /message  (optimistic append)
+ * useSendMessage        — POST /message  (optimistic append, supports mediaIds)
  * useCreateConversation — POST /conversation
+ * useAddParticipant     — POST /conversation/:id/participants
+ * useRemoveParticipant  — DELETE /conversation/:id/participants/:userId
+ * useLeaveConversation  — POST /conversation/:id/leave
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { conversationService, messageService, type MessageItem } from '../services/messages'
+import { conversationService, messageService, type MessageItem, type MessageType } from '../services/messages'
+import { useAuthStore } from '../stores/authStore'
 import { queryKeys } from '../lib/queryKeys'
 
 // ── Conversations ─────────────────────────────────────────────────────────────
@@ -37,18 +41,25 @@ export function useMessages(conversationId: string) {
 
 interface SendPayload {
   conversationId: string
-  content:        string
-  senderId:       string
+  content?:       string
+  mediaIds?:      string[]
+  messageType?:   MessageType
 }
 
 export function useSendMessage() {
   const qc = useQueryClient()
+  const currentUser = useAuthStore((s) => s.user)
 
   return useMutation({
-    mutationFn: ({ conversationId, content }: SendPayload) =>
-      messageService.send({ conversationId, content, messageType: 'TEXT' }),
+    mutationFn: ({ conversationId, content, mediaIds, messageType }: SendPayload) =>
+      messageService.send({
+        conversationId,
+        content,
+        mediaIds,
+        messageType: messageType ?? (mediaIds?.length ? 'IMAGE' : 'TEXT'),
+      }),
 
-    onMutate: async ({ conversationId, content, senderId }) => {
+    onMutate: async ({ conversationId, content, mediaIds }) => {
       await qc.cancelQueries({ queryKey: queryKeys.messages.byConversation(conversationId) })
 
       const previous = qc.getQueryData<MessageItem[]>(
@@ -58,9 +69,10 @@ export function useSendMessage() {
       const optimistic: MessageItem = {
         id:             `optimistic-${Date.now()}`,
         content,
-        messageType:    'TEXT',
+        messageType:    mediaIds?.length ? 'IMAGE' : 'TEXT',
         conversationId,
-        senderId,
+        senderId:       currentUser?.id ?? '',
+        sender:         currentUser ? { id: currentUser.id, name: currentUser.name, username: '' } : undefined,
         createdAt:      new Date().toISOString(),
       }
 
@@ -101,5 +113,42 @@ export function useCreateConversation() {
   return useMutation({
     mutationFn: conversationService.create,
     onSuccess:  () => qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() }),
+  })
+}
+
+// ── Group participants ────────────────────────────────────────────────────────
+
+export function useAddParticipant() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ conversationId, userId, role }: { conversationId: string; userId: string; role?: 'ADMIN' | 'MEMBER' }) =>
+      conversationService.addParticipant(conversationId, userId, role),
+    onSuccess: (_, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.conversations.byId(conversationId) })
+      qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() })
+    },
+  })
+}
+
+export function useRemoveParticipant() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      conversationService.removeParticipant(conversationId, userId),
+    onSuccess: (_, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.conversations.byId(conversationId) })
+      qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() })
+    },
+  })
+}
+
+export function useLeaveConversation() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (conversationId: string) => conversationService.leave(conversationId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() }),
   })
 }
