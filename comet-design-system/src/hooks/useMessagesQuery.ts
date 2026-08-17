@@ -152,3 +152,43 @@ export function useLeaveConversation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() }),
   })
 }
+
+// ── Mark messages as read ─────────────────────────────────────────────────────
+
+export function useMarkAsRead() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
+      messageService.markRead(conversationId, messageId),
+    onMutate: async ({ conversationId }) => {
+      // Cancel any ongoing queries to prevent race conditions
+      await qc.cancelQueries({ queryKey: queryKeys.conversations.mine() })
+
+      // Get the current conversations data
+      const previousConversations = qc.getQueryData(queryKeys.conversations.mine())
+
+      // Optimistically update the unread count to 0 for this conversation
+      qc.setQueryData(queryKeys.conversations.mine(), (old: any) => {
+        if (!Array.isArray(old)) return old
+        return old.map((conv: any) =>
+          conv.id === conversationId
+            ? { ...conv, unreadCount: 0 }
+            : conv
+        )
+      })
+
+      return { previousConversations }
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousConversations) {
+        qc.setQueryData(queryKeys.conversations.mine(), context.previousConversations)
+      }
+    },
+    onSuccess: (_, { conversationId }) => {
+      // Invalidate to get fresh data from server
+      qc.invalidateQueries({ queryKey: queryKeys.conversations.mine() })
+    },
+  })
+}

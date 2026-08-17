@@ -4,7 +4,7 @@ import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Input } from '../ui/Input'
 import { toast } from '../ui/Toast'
-import { useConversations, useMessages, useSendMessage, useCreateConversation } from '../../hooks/useMessagesQuery'
+import { useConversations, useMessages, useSendMessage, useCreateConversation, useMarkAsRead } from '../../hooks/useMessagesQuery'
 import { useMyFriends } from '../../hooks/useFriendsQuery'
 import { useUploadMedia } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../stores/authStore'
@@ -140,12 +140,14 @@ export function MessagesScreen() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const lastMarkedMessageRef = useRef<string | null>(null)
 
   // ── Queries & mutations ────────────────────────────────────────────────────
   const { data: conversations = [], isLoading: loadingConvs, isError: convError, refetch } = useConversations()
   const { data: messages = [], isLoading: loadingMsgs } = useMessages(activeConvId ?? '')
   const sendMessage = useSendMessage()
   const uploadMedia = useUploadMedia()
+  const markAsRead = useMarkAsRead()
 
   // Auto-select first conversation
   useEffect(() => {
@@ -158,6 +160,22 @@ export function MessagesScreen() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Mark messages as read when conversation is opened and has messages
+  useEffect(() => {
+    if (activeConvId && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage && lastMessage.id && lastMessage.id !== lastMarkedMessageRef.current) {
+        lastMarkedMessageRef.current = lastMessage.id
+        markAsRead.mutate({ conversationId: activeConvId, messageId: lastMessage.id })
+      }
+    }
+  }, [activeConvId, messages])
+
+  // Reset last marked message when changing conversations
+  useEffect(() => {
+    lastMarkedMessageRef.current = null
+  }, [activeConvId])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const otherParticipant = (conv: Conversation) =>
@@ -268,9 +286,13 @@ export function MessagesScreen() {
                 className={`flex items-center gap-3 p-3 lg:p-4 rounded-2xl cursor-pointer transition-all ${isActive ? 'bg-surface-container-lowest shadow-sm border border-primary/10' : 'hover:bg-surface-container-low'}`}
               >
                 {c.type === 'GROUP' ? (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
-                    <Users size={20} className="text-white" />
-                  </div>
+                  c.avatarMediaId ? (
+                    <ParticipantAvatar name={name} avatarMediaId={c.avatarMediaId} size="md" className="shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
+                      <Users size={20} className="text-white" />
+                    </div>
+                  )
                 ) : (
                   <ParticipantAvatar name={name} avatarMediaId={other?.avatarMediaId} size="md" className="shrink-0" />
                 )}
@@ -309,9 +331,13 @@ export function MessagesScreen() {
                   <ArrowLeft size={20} />
                 </button>
                 {activeConv.type === 'GROUP' ? (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
-                    <Users size={16} className="text-white" />
-                  </div>
+                  activeConv.avatarMediaId ? (
+                    <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConv.avatarMediaId} size="sm" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
+                      <Users size={16} className="text-white" />
+                    </div>
+                  )
                 ) : (
                   <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConvOther?.avatarMediaId} size="sm" />
                 )}
