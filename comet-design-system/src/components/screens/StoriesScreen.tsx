@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Heart, Pause, Play } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Heart, Pause, Play, Trash2 } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
-import { useStoriesFeed } from '../../hooks/useStoriesQuery'
+import { toast } from '../ui/Toast'
+import { useStoriesFeed, useDeleteStory } from '../../hooks/useStoriesQuery'
 import { getStoryMediaUrl } from '../../services/stories'
+import { useAuthStore } from '../../stores/authStore'
 
 const STORY_DURATION = 5000 // 5 seconds per story
 

@@ -67,9 +67,10 @@ export const postsService = {
   /**
    * POST /post/schedule
    * Schedule a post for future publishing.
-   * NOTE: the backend reads `scheduledTime` from the body (not `scheduledAt`) —
-   * we keep the app-facing param named `scheduledAt` for consistency with the
-   * rest of the codebase and remap it on the wire here.
+   * NOTE: the controller's inline body type says `scheduledTime`, but that's
+   * just a TS annotation with no runtime validation (no DTO/ValidationPipe on
+   * this route) — post.service.ts's schedulePost() actually reads
+   * `data.scheduledAt` (falling back to `data.scheduledFor`). Send `scheduledAt`.
    */
   schedulePost: async (payload: {
     content?: string
@@ -79,8 +80,7 @@ export const postsService = {
     mediaIds?: string[]
     scheduledAt: string // ISO 8601 timestamp
   }): Promise<Post> => {
-    const { scheduledAt, ...rest } = payload
-    const { data } = await api.post('/post/schedule', { ...rest, scheduledTime: scheduledAt })
+    const { data } = await api.post('/post/schedule', payload)
     return data
   },
 

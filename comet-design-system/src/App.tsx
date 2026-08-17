@@ -18,6 +18,7 @@ import { NotificationsScreen }    from './components/screens/NotificationsScreen
 import { SearchScreen }           from './components/screens/SearchScreen'
 import { GroupsScreen }           from './components/screens/GroupsScreen'
 import { SettingsScreen }         from './components/screens/SettingsScreen'
+import { EditProfileScreen }      from './components/screens/EditProfileScreen'
 import { useUIStore }             from './stores/uiStore'
 
 export default function App() {
@@ -94,6 +95,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AppShell><ProfileScreen /></AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <AppShell><EditProfileScreen /></AppShell>
               </ProtectedRoute>
             }
           />

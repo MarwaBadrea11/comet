@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Camera, Loader2, Users, FileText } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
@@ -15,6 +15,7 @@ const TABS = ['Portfolio']
 
 export function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>()
+  const navigate = useNavigate()
   const currentUser = useAuthStore(s => s.user)
 
   const [tab, setTab]               = useState('Portfolio')
@@ -35,6 +36,17 @@ export function ProfileScreen() {
   const displayName = profile?.name ?? currentUser?.name ?? 'Comet User'
   const avatarSrc   = profile?.avatar
     ?? `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`
+  const coverSrc = profile?.coverMedia?.url
+
+  // Debug: Log profile data to verify cover image
+  if (profile) {
+    console.log('📸 Profile Data:', {
+      hasProfile: !!profile,
+      hasCoverMedia: !!profile.coverMedia,
+      coverUrl: profile.coverMedia?.url || 'none',
+      coverMediaId: profile.coverMedia?.id || 'none'
+    })
+  }
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,7 +82,21 @@ export function ProfileScreen() {
     <div className="min-h-screen">
       {/* Cover */}
       <section className="relative h-[460px] w-full overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-br from-primary/40 via-[#6B46C0]/60 to-[#00D4FF]/30" />
+        {/* Cover Image or Gradient Fallback */}
+        {coverSrc ? (
+          <img 
+            src={coverSrc} 
+            alt="Cover" 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to gradient if image fails to load
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/40 via-[#6B46C0]/60 to-[#00D4FF]/30" />
+        )}
+        {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
       </section>
 
@@ -126,7 +152,9 @@ export function ProfileScreen() {
           <div className="pb-0 md:pb-6 flex gap-3">
             {isOwnProfile ? (
               <>
-                <Button variant="primary" size="md">Edit Profile</Button>
+                <Button variant="primary" size="md" onClick={() => navigate('/profile/edit')}>
+                  Edit Profile
+                </Button>
                 <Button variant="secondary" size="md">Share</Button>
               </>
             ) : profile?.id ? (
