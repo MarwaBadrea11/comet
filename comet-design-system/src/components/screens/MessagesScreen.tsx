@@ -9,6 +9,7 @@ import { useMyFriends } from '../../hooks/useFriendsQuery'
 import { useUploadMedia } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../stores/authStore'
 import type { Conversation, MessageItem } from '../../services/messages'
+import { CreateGroupChatModal } from './CreateGroupChatModal'
 
 // A conversation's other participant(s) only carry avatarMediaId (no nested
 // avatarMedia object) — resolve the real URL so map() stays rules-of-hooks safe.
@@ -134,6 +135,7 @@ export function MessagesScreen() {
   const [msg, setMsg]                   = useState('')
   const [showChat, setShowChat]         = useState(false)
   const [showNewConv, setShowNewConv]   = useState(false)
+  const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -213,14 +215,24 @@ export function MessagesScreen() {
       <section className={`flex flex-col bg-surface border-r border-outline-variant/15 w-full sm:w-80 lg:w-96 shrink-0 ${showChat ? 'hidden sm:flex' : 'flex'}`}>
         <div className="p-5 lg:p-8 pb-3 lg:pb-4">
           <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <h1 className="text-xl lg:text-2xl font-extrabold font-headline text-on-surface tracking-tight">Direct Messages</h1>
-            <button
-              onClick={() => setShowNewConv(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white hover:opacity-90 transition-opacity shrink-0"
-              aria-label="New message"
-            >
-              <Plus size={18} />
-            </button>
+            <h1 className="text-xl lg:text-2xl font-extrabold font-headline text-on-surface tracking-tight">Messages</h1>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCreateGroup(true)}
+                className="h-9 px-3 flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-[#00D4FF] text-white hover:opacity-90 transition-opacity text-sm font-semibold"
+                aria-label="Create group"
+              >
+                <Users size={16} />
+                <span className="hidden sm:inline">Group</span>
+              </button>
+              <button
+                onClick={() => setShowNewConv(true)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white hover:opacity-90 transition-opacity shrink-0"
+                aria-label="New message"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
           </div>
           <Input variant="search" placeholder="Search conversations..." leadingIcon={<Search size={18} />} />
         </div>
@@ -376,6 +388,16 @@ export function MessagesScreen() {
       </section>
 
       {showNewConv && <NewConversationModal onClose={() => setShowNewConv(false)} />}
+      
+      {showCreateGroup && (
+        <CreateGroupChatModal
+          onClose={() => setShowCreateGroup(false)}
+          onGroupCreated={(conversationId) => {
+            setActiveConvId(conversationId)
+            setShowChat(true)
+          }}
+        />
+      )}
     </div>
   )
 }
