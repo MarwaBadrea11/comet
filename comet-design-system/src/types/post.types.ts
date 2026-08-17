@@ -91,6 +91,7 @@ export interface Post {
   reactions?: Reaction[]
   comments?: Comment[]
   hashtags?: Hashtag[]
+  story?: any // If this post is wrapped by a Story, this relation will exist
   _count?: {
     comments: number
     reactions: number

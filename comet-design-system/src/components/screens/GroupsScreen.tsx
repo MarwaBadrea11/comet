@@ -1,11 +1,19 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Users, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../ui/Button'
+import { toast } from '../ui/Toast'
 import { useGroups, useJoinGroup, useLeaveGroup } from '../../hooks/useGroupsQuery'
+import { CreateGroupModal } from './CreateGroupModal'
 
 const FILTERS = ['All', 'Creative', 'Tech', 'Nature']
 
 export function GroupsScreen() {
+  const navigate = useNavigate()
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedFilter, setSelectedFilter] = useState('All')
+  
   const { data: allGroups = [], isLoading, isError, refetch } = useGroups()
   const joinGroup  = useJoinGroup()
   const leaveGroup = useLeaveGroup()
@@ -13,9 +21,41 @@ export function GroupsScreen() {
   const myGroups      = allGroups.filter(g => g.role != null)
   const discoverGroups = allGroups.filter(g => g.role == null)
 
-  const handleLeave = (groupId: string) => {
+  const handleLeave = (e: React.MouseEvent, groupId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
     if (!window.confirm('Are you sure you want to leave this constellation?')) return
-    leaveGroup.mutate(groupId)
+    leaveGroup.mutate(groupId, {
+      onSuccess: () => toast.success('Left group successfully'),
+      onError: () => toast.error('Failed to leave group'),
+    })
+  }
+
+  const handleJoin = (e: React.MouseEvent, groupId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    joinGroup.mutate(groupId, {
+      onSuccess: () => {
+        toast.success('Joined group successfully!')
+      },
+      onError: (error: any) => {
+        // Check if it's a 409 conflict (already a member)
+        if (error?.response?.status === 409) {
+          toast.info('You are already a member of this group')
+          // Force refetch to sync UI state
+          refetch()
+        } else {
+          const message = error?.response?.data?.message || error?.message || 'Failed to join group'
+          toast.error(message)
+        }
+      },
+    })
+  }
+
+  const handleGroupClick = (groupId: string) => {
+    navigate(`/groups/${groupId}`)
   }
 
   if (isLoading) {
@@ -44,7 +84,7 @@ export function GroupsScreen() {
             <h3 className="font-headline text-2xl font-extrabold tracking-tight mb-2">My Constellations</h3>
             <p className="text-sm text-on-surface-variant">The communities you shape and guide.</p>
           </div>
-          <Button variant="primary" className="flex items-center gap-2">
+          <Button variant="primary" className="flex items-center gap-2" onClick={() => setShowCreateModal(true)}>
             <Plus size={16} /> Create Group
           </Button>
         </div>
@@ -61,7 +101,8 @@ export function GroupsScreen() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between"
+                onClick={() => handleGroupClick(g.id)}
+                className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col justify-between cursor-pointer hover:shadow-lg transition-shadow"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -83,7 +124,7 @@ export function GroupsScreen() {
                     variant="secondary" size="sm"
                     className="text-red-500 hover:bg-red-50"
                     disabled={leaveGroup.isPending}
-                    onClick={() => handleLeave(g.id)}
+                    onClick={(e) => handleLeave(e, g.id)}
                   >
                     Leave
                   </Button>
@@ -101,7 +142,15 @@ export function GroupsScreen() {
           <p className="text-sm text-on-surface-variant">Expand your horizon. Join new conceptual spaces.</p>
           <div className="flex gap-2 mt-6">
             {FILTERS.map(f => (
-              <button key={f} className={`px-4 h-9 rounded-xl text-xs font-semibold transition-all ${f === 'All' ? 'bg-primary text-white shadow-sm' : 'bg-white/60 hover:bg-white text-on-surface-variant border border-outline-variant/10'}`}>
+              <button 
+                key={f} 
+                onClick={() => setSelectedFilter(f)}
+                className={`px-4 h-9 rounded-xl text-xs font-semibold transition-all ${
+                  f === selectedFilter 
+                    ? 'bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white shadow-sm' 
+                    : 'bg-white/60 hover:bg-white text-on-surface-variant border border-outline-variant/10'
+                }`}
+              >
                 {f}
               </button>
             ))}
@@ -118,18 +167,21 @@ export function GroupsScreen() {
           {discoverGroups.map(g => (
             <motion.div key={g.id} layout className="bg-white rounded-2xl p-6 border border-outline-variant/15 shadow-sm flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-                <div>
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-1">{g.privacy || 'PUBLIC'}</span>
+                <div className="flex-1">
                   <h4 className="font-headline font-bold text-xl text-on-surface mb-2">{g.name}</h4>
                   <p className="text-sm text-on-surface-variant leading-relaxed">{g.description || 'Explore collective thinking inside this Comet community.'}</p>
                 </div>
                 <Button
                   variant="primary" size="sm"
                   disabled={joinGroup.isPending && joinGroup.variables === g.id}
-                  onClick={() => joinGroup.mutate(g.id)}
-                  className="sm:self-start min-w-[90px] h-9 rounded-xl flex items-center justify-center"
+                  onClick={(e) => handleJoin(e, g.id)}
+                  className="sm:self-start min-w-[120px] h-9 rounded-xl flex items-center justify-center"
                 >
-                  {joinGroup.isPending && joinGroup.variables === g.id ? <Loader2 size={14} className="animate-spin" /> : 'Join'}
+                  {joinGroup.isPending && joinGroup.variables === g.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    'Join'
+                  )}
                 </Button>
               </div>
               <div className="flex items-center gap-2 text-xs text-on-surface-variant/70 font-semibold pt-4 border-t border-outline-variant/5">
@@ -141,24 +193,14 @@ export function GroupsScreen() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mt-24 mb-12">
-        <div className="bg-surface-container-low rounded-[2rem] p-16 flex flex-col lg:flex-row items-center gap-20 overflow-hidden relative border border-outline-variant/5">
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
-          <div className="lg:w-1/2 relative z-10">
-            <span className="text-primary font-bold tracking-widest text-xs uppercase mb-4 block">Curated Focus</span>
-            <h2 className="font-headline text-5xl font-extrabold mb-8 leading-tight">Create your own constellation.</h2>
-            <p className="text-on-surface-variant mb-12 leading-loose max-w-lg">Bring your community to life with Comet's high-fidelity group tools.</p>
-            <div className="flex gap-6">
-              <Button variant="primary" size="lg">Start a Group</Button>
-              <Button variant="secondary" size="lg">Learn More</Button>
-            </div>
-          </div>
-          <div className="lg:w-1/2 flex justify-center">
-            <div className="w-full max-w-sm aspect-square bg-gradient-to-tr from-[#6B46C0]/20 to-[#00D4FF]/20 rounded-3xl blur-sm" />
-          </div>
-        </div>
-      </section>
+      {showCreateModal && (
+        <CreateGroupModal
+          onClose={() => setShowCreateModal(false)}
+          onGroupCreated={(groupId) => {
+            handleGroupClick(groupId)
+          }}
+        />
+      )}
     </div>
   )
 }

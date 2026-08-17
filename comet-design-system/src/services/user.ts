@@ -80,29 +80,45 @@ export const userService = {
   },
 
   /**
-   * Search user by email using the search endpoint
-   * This uses the general search API filtered for users
+   * Search user by email
+   * Fetches all users and filters by exact email match
    */
   searchByEmail: async (email: string): Promise<UserProfile | null> => {
     if (!email?.trim()) {
       throw new Error('Email cannot be empty')
     }
     
-    const { data } = await api.get('/search-history', {
-      params: { 
-        q: email, 
-        category: 'users',
-        page: 1,
-        limit: 1
-      },
+    const normalizedEmail = email.trim().toLowerCase()
+    
+    // Fetch all users and filter by email on client side
+    const { data } = await api.get('/user', {
+      params: { page: 1, limit: 1000 }
     })
     
-    // Return the first user if found, otherwise null
-    if (data?.users && data.users.length > 0) {
-      return normalizeProfile(data.users[0])
-    }
+    const users = Array.isArray(data) ? data : data?.users || []
+    const foundUser = users.find((u: any) => 
+      u.email?.toLowerCase() === normalizedEmail
+    )
     
-    return null
+    return foundUser ? normalizeProfile(foundUser) : null
+  },
+
+  /**
+   * GET /user (all users)
+   * Fetches all registered users on the platform with pagination
+   */
+  getAllUsers: async (page = 1, limit = 20): Promise<{ users: UserProfile[], total: number }> => {
+    const { data } = await api.get('/user', {
+      params: { page, limit }
+    })
+    
+    const users = Array.isArray(data) ? data : data?.users || []
+    const total = data?.total || users.length
+    
+    return {
+      users: users.map(normalizeProfile),
+      total
+    }
   },
 }
 

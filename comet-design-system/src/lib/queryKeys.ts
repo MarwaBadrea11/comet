@@ -11,6 +11,7 @@ export const queryKeys = {
   user: {
     all:     ()         => ['user'] as const,
     byId:    (id: string) => ['user', id] as const,
+    allUsers: (page?: number, limit?: number) => ['users', 'all', page, limit] as const,
   },
 
   // ── Posts ─────────────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ export const queryKeys = {
 
   // ── Stories ───────────────────────────────────────────────────────────────
   stories: {
+    all:  ()                          => ['stories'] as const,
     feed: ()                          => ['stories', 'feed'] as const,
     mine: (includeExpired: boolean)   => ['stories', 'mine', includeExpired] as const,
     byId: (id: string)                => ['stories', 'detail', id] as const,

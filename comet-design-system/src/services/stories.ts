@@ -10,14 +10,25 @@
  */
 
 import api, { BASE_URL } from './api'
-import type { Story, StoryFeedGroup, CreateStoryRequest, UpdateStoryRequest } from '../types'
+import type { Story, StoryGroup, CreateStoryPayload, UpdateStoryPayload } from '../types'
 
 export const storiesService = {
   /**
-   * POST /story
-   * Creates a Post + Story together.
+   * POST /story/upload
+   * Upload story with media files directly (multipart/form-data).
    */
-  create: async (payload: CreateStoryRequest): Promise<Story> => {
+  uploadStory: async (formData: FormData): Promise<Story> => {
+    const { data } = await api.post('/story/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  /**
+   * POST /story
+   * Creates a Post + Story together (using pre-uploaded media IDs).
+   */
+  createStory: async (payload: CreateStoryPayload): Promise<Story> => {
     const { data } = await api.post('/story', payload)
     return data
   },
@@ -26,7 +37,7 @@ export const storiesService = {
    * GET /story/feed
    * Active (non-expired) stories from the current user + friends, grouped by author.
    */
-  getFeed: async (): Promise<StoryFeedGroup[]> => {
+  getFeed: async (): Promise<StoryGroup[]> => {
     const { data } = await api.get('/story/feed')
     return Array.isArray(data) ? data : []
   },
@@ -50,7 +61,7 @@ export const storiesService = {
   /**
    * PATCH /story/:id — owner only.
    */
-  update: async (id: string, payload: UpdateStoryRequest): Promise<Story> => {
+  updateStory: async (id: string, payload: UpdateStoryPayload): Promise<Story> => {
     const { data } = await api.patch(`/story/${id}`, payload)
     return data
   },
@@ -58,7 +69,7 @@ export const storiesService = {
   /**
    * DELETE /story/:id — owner only, cascades to the underlying post.
    */
-  remove: async (id: string): Promise<void> => {
+  deleteStory: async (id: string): Promise<void> => {
     await api.delete(`/story/${id}`)
   },
 }

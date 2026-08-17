@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
+import { useMemo } from 'react'
 import { SideNav, EXPANDED_W, COLLAPSED_W } from './SideNav'
 import { TopBar } from './TopBar'
 import { FAB } from './FAB'
@@ -35,17 +36,18 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const desktopMargin = collapsed ? COLLAPSED_W : EXPANDED_W
 
-  const NAV_ITEMS: NavItem[] = [
+  const NAV_ITEMS: NavItem[] = useMemo(() => [
     { label: t('sidebar.home'),          icon: 'home',          href: '/home' },
     { label: t('sidebar.explore'),       icon: 'explore',       href: '/explore' },
+    { label: t('sidebar.users'),         icon: 'people',        href: '/users' },
     { label: t('sidebar.messages'),      icon: 'mail',          href: '/messages' },
     { label: t('sidebar.friendRequests'), icon: 'person_add',   href: '/friend-requests' },
     { label: t('sidebar.groups'),        icon: 'group',         href: '/groups' },
     { label: t('sidebar.notifications'), icon: 'notifications', href: '/notifications' },
     { label: t('sidebar.settings'),      icon: 'settings',      href: '/settings' },
-  ]
+  ], [t])
 
-  const navItems: NavItem[] = NAV_ITEMS.map(item => ({
+  const navItems: NavItem[] = useMemo(() => NAV_ITEMS.map(item => ({
     ...item,
     active: path.startsWith(item.href),
     badge:
@@ -54,13 +56,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         : item.href === '/friend-requests'
         ? (pendingCount > 0 ? pendingCount : undefined)
         : item.badge,
-  }))
+  })), [NAV_ITEMS, path, unread, pendingCount])
 
-  const displayUser = {
+  const displayUser = useMemo(() => ({
     name:   profile?.name || user?.name || 'Comet User',
     handle: profile?.username ? `@${profile.username}` : `@${(user?.name ?? 'user').toLowerCase().replace(/\s+/g, '')}`,
     avatar: profile?.avatar || user?.avatar || undefined,
-  }
+  }), [profile, user])
 
   return (
     <div className="bg-surface min-h-screen transition-colors duration-300">

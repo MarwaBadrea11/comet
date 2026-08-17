@@ -18,6 +18,8 @@ interface Props {
   open: boolean
   onClose: () => void
   onCreated?: () => void
+  groupId?: string
+  onSuccess?: () => void
 }
 
 const VISIBILITY_OPTIONS = [
@@ -28,7 +30,7 @@ const VISIBILITY_OPTIONS = [
 
 type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
 
-export function CreatePostModal({ open, onClose, onCreated }: Props) {
+export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }: Props) {
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
   const { data: profile } = useMyProfile()
@@ -128,6 +130,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
           feeling,
           location,
           scheduledAt: scheduledDate.toISOString(),
+          groupId,
         },
         {
           onSuccess: () => {
@@ -141,6 +144,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
             setShowVisibilityPicker(false)
             onClose()
             onCreated?.()
+            onSuccess?.()
           },
           onError: (err: any) => {
             if (err.response?.status === 400) {
@@ -154,7 +158,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
     } else {
       // Post immediately
       createPost.mutate(
-        { content: pendingText, visibility, mediaIds, feeling, location },
+        { content: pendingText, visibility, mediaIds, feeling, location, groupId },
         {
           onSuccess: (savedPost) => {
             const saved = localStorage.getItem('comet_global_local_posts')
@@ -197,6 +201,7 @@ export function CreatePostModal({ open, onClose, onCreated }: Props) {
             setShowVisibilityPicker(false)
             onClose()
             onCreated?.()
+            onSuccess?.()
             queryClient.invalidateQueries({ queryKey: ['feed'] }).catch(() => {})
           },
           onError: () => {

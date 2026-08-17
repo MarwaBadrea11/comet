@@ -15,6 +15,7 @@ import { getTranslations, type Translations } from '../i18n/translations'
 type TranslationKey = 
   | 'sidebar.home'
   | 'sidebar.explore'
+  | 'sidebar.users'
   | 'sidebar.messages'
   | 'sidebar.friendRequests'
   | 'sidebar.groups'

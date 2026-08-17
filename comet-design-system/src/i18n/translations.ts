@@ -11,6 +11,7 @@ export interface Translations {
   sidebar: {
     home: string
     explore: string
+    users: string
     messages: string
     friendRequests: string
     groups: string
@@ -105,6 +106,7 @@ export const translations: Record<Language, Translations> = {
     sidebar: {
       home: 'Home',
       explore: 'Explore',
+      users: 'Users',
       messages: 'Messages',
       friendRequests: 'Friend Requests',
       groups: 'Groups',
@@ -197,6 +199,7 @@ export const translations: Record<Language, Translations> = {
     sidebar: {
       home: 'الرئيسية',
       explore: 'استكشف',
+      users: 'المستخدمون',
       messages: 'الرسائل',
       friendRequests: 'طلبات الصداقة',
       groups: 'المجموعات',

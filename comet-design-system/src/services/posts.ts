@@ -21,16 +21,25 @@ export const postsService = {
   /**
    * GET /post/feed?page=1&pageSize=20
    * Returns the authenticated user's personalized feed.
+   * Excludes stories (which are fetched separately via GET /story/feed).
    */
   getFeed: async (page = 1, pageSize = 20): Promise<Post[]> => {
     const { data } = await api.get('/post/feed', {
       params: { page, pageSize },
     })
     // Normalize: API may return array or { posts: [] } or { data: [] }
-    if (Array.isArray(data)) return data
-    if (Array.isArray(data?.posts)) return data.posts
-    if (Array.isArray(data?.data)) return data.data
-    return []
+    let posts: Post[] = []
+    if (Array.isArray(data)) {
+      posts = data
+    } else if (Array.isArray(data?.posts)) {
+      posts = data.posts
+    } else if (Array.isArray(data?.data)) {
+      posts = data.data
+    }
+    
+    // Filter out any stories that might have leaked into the feed
+    // Stories have a story table entry and should only appear in /story/feed
+    return posts.filter(post => !post.story)
   },
 
   /**
@@ -44,10 +53,13 @@ export const postsService = {
   /**
    * GET /post/user/:username
    * Public — no auth required.
+   * Returns posts by username, excluding stories.
    */
   getPostsByUsername: async (username: string): Promise<Post[]> => {
     const { data } = await api.get(`/post/user/${username}`)
-    return Array.isArray(data) ? data : data?.posts ?? []
+    const posts = Array.isArray(data) ? data : data?.posts ?? []
+    // Filter out stories
+    return posts.filter((post: Post) => !post.story)
   },
 
   /**
@@ -59,6 +71,7 @@ export const postsService = {
     feeling?: string
     location?: string
     mediaIds?: string[]
+    groupId?: string
   }): Promise<Post> => {
     const { data } = await api.post('/post', payload)
     return data
@@ -79,6 +92,7 @@ export const postsService = {
     location?: string
     mediaIds?: string[]
     scheduledAt: string // ISO 8601 timestamp
+    groupId?: string
   }): Promise<Post> => {
     const { data } = await api.post('/post/schedule', payload)
     return data

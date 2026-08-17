@@ -8,15 +8,16 @@
  * useStory       — GET /story/:id
  *
  * Mutations:
+ * useUploadStory — POST /story/upload (multipart/form-data)
  * useCreateStory — POST /story
  * useUpdateStory — PATCH /story/:id
- * useDeleteStory — DELETE /story/:id
+ * useDeleteStory — DELETE /story/:id (with optimistic removal)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { storiesService } from '../services/stories'
 import { queryKeys } from '../lib/queryKeys'
-import type { CreateStoryRequest, UpdateStoryRequest } from '../types'
+import type { CreateStoryPayload, UpdateStoryPayload, StoryGroup } from '../types'
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -46,13 +47,28 @@ export function useStory(id: string) {
 
 // ── Create story ──────────────────────────────────────────────────────────────
 
+export function useUploadStory() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (formData: FormData) => storiesService.uploadStory(formData),
+    onSuccess: () => {
+      // Only invalidate story queries, NOT post feed
+      qc.invalidateQueries({ queryKey: queryKeys.stories.feed() })
+      qc.invalidateQueries({ queryKey: queryKeys.stories.mine(false) })
+    },
+  })
+}
+
 export function useCreateStory() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: CreateStoryRequest) => storiesService.create(payload),
+    mutationFn: (payload: CreateStoryPayload) => storiesService.createStory(payload),
     onSuccess: () => {
+      // Only invalidate story queries, NOT post feed
       qc.invalidateQueries({ queryKey: queryKeys.stories.feed() })
+      qc.invalidateQueries({ queryKey: queryKeys.stories.mine(false) })
     },
   })
 }
@@ -63,8 +79,8 @@ export function useUpdateStory() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, ...payload }: UpdateStoryRequest & { id: string }) =>
-      storiesService.update(id, payload),
+    mutationFn: ({ id, ...payload }: UpdateStoryPayload & { id: string }) =>
+      storiesService.updateStory(id, payload),
     onSuccess: (updated) => {
       qc.setQueryData(queryKeys.stories.byId(String(updated.id)), updated)
       qc.invalidateQueries({ queryKey: queryKeys.stories.feed() })
@@ -72,16 +88,50 @@ export function useUpdateStory() {
   })
 }
 
-// ── Delete story ──────────────────────────────────────────────────────────────
+// ── Delete story (with optimistic removal) ────────────────────────────────────
 
 export function useDeleteStory() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => storiesService.remove(id),
-    onSuccess: (_, id) => {
+    mutationFn: (id: string) => storiesService.deleteStory(id),
+
+    onMutate: async (id) => {
+      // Cancel outgoing queries
+      await qc.cancelQueries({ queryKey: queryKeys.stories.feed() })
+
+      // Snapshot previous state
+      const previousFeed = qc.getQueryData<StoryGroup[]>(queryKeys.stories.feed())
+
+      // Optimistically remove the story from the feed
+      if (previousFeed) {
+        qc.setQueryData<StoryGroup[]>(
+          queryKeys.stories.feed(),
+          previousFeed
+            .map((group) => ({
+              ...group,
+              stories: group.stories.filter((story) => String(story.id) !== id),
+            }))
+            .filter((group) => group.stories.length > 0), // Remove empty groups
+        )
+      }
+
+      return { previousFeed }
+    },
+
+    onError: (_err, _id, context) => {
+      // Roll back to previous state on error
+      if (context?.previousFeed) {
+        qc.setQueryData(queryKeys.stories.feed(), context.previousFeed)
+      }
+    },
+
+    onSettled: (_, __, id) => {
+      // Clean up and revalidate
       qc.removeQueries({ queryKey: queryKeys.stories.byId(id) })
       qc.invalidateQueries({ queryKey: queryKeys.stories.feed() })
+      qc.invalidateQueries({ queryKey: queryKeys.stories.mine(false) })
+      qc.invalidateQueries({ queryKey: queryKeys.stories.mine(true) })
     },
   })
 }

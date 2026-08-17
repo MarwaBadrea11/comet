@@ -3,7 +3,7 @@
     "_postman_id": "2b2ffcb3-ab23-4c3e-bc78-bab5ef92d871",
     "name": "Social Platform API — Full Collection (Fixed)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Consolidated, corrected collection built directly against the provided NestJS controllers (auth, post, comment, friendship, block, group, hashtag, message). Auth is inherited at the collection level as Bearer {{accessToken}}, auto-populated by the Sign In / Refresh requests' test scripts. Public routes override auth to 'No Auth'.\n\nEndpoints for 'reaction' were kept from the original file but flagged ⚠️ because no reaction controller source was supplied to verify them. Endpoints for /media/*, /search/*, /search-history/*, and /conversation/* (as opposed to /message/conversation/:id) that appeared in the old files were NOT included here because no matching controller source was provided — ask if you want them added once you share those controllers."
+    "description": "Consolidated, corrected collection built directly against the provided NestJS controllers (auth, user, post, comment, friendship, block, group, hashtag, message, search). Auth is inherited at the collection level as Bearer {{accessToken}}, auto-populated by the Sign In / Refresh requests' test scripts. Public routes override auth to 'No Auth'.\n\nEndpoints for 'reaction' were kept from the original file but flagged ⚠️ because no reaction controller source was supplied to verify them.\n\nSearch endpoints (/search-history/*, /search/*) and User profile endpoints (/user/*) have been added to support search-by-email and user management functionality."
   },
   "auth": {
     "type": "bearer",
@@ -89,6 +89,11 @@
     {
       "key": "username",
       "value": "bob",
+      "type": "string"
+    },
+    {
+      "value": "alice@example.com",
+      "key": "email",
       "type": "string"
     }
   ],
@@ -268,6 +273,139 @@
         }
       ],
       "description": ""
+    },
+    {
+      "name": "User",
+      "description": "User profile and management endpoints",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/profile",
+              "path": [
+                "user",
+                "profile"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Returns the authenticated user's own full profile (req.user.id from JWT)."
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "response": [],
+          "request": {
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"username\": \"johndoe\",\n  \"bio\": \"Software developer\",\n  \"city\": \"New York\",\n  \"country\": \"USA\",\n  \"gender\": \"MALE\",\n  \"avatarMediaId\": \"123\",\n  \"coverMediaId\": \"456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/profile",
+              "path": [
+                "user",
+                "profile"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "PATCH",
+            "description": "Updates the authenticated user's own profile including avatarMediaId/coverMediaId."
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/{{userId}}",
+              "path": [
+                "user",
+                "{{userId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Get a specific user's profile by their ID."
+          }
+        },
+        {
+          "response": [],
+          "request": {
+            "description": "Search for a user by their exact email address. Returns a single user profile or 404 if not found.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "query": [
+                {
+                  "description": "Email address to search for (required)",
+                  "value": "{{email}}",
+                  "key": "email"
+                }
+              ],
+              "path": [
+                "user",
+                "by-email"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "raw": "{{baseUrl}}/user/by-email?email={{email}}"
+            }
+          },
+          "name": "Get User by Email"
+        },
+        {
+          "name": "Get All Users",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user?page=1&limit=20",
+              "query": [
+                {
+                  "key": "page",
+                  "description": "Page number",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "description": "Items per page",
+                  "value": "20"
+                }
+              ],
+              "path": [
+                "user"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Fetches all registered users on the platform with pagination."
+          }
+        }
+      ]
     },
     {
       "name": "Post",
@@ -753,6 +891,176 @@
         }
       ],
       "description": ""
+    },
+    {
+      "name": "Search & Search History",
+      "description": "Search endpoints for users, posts, groups, and search history management",
+      "item": [
+        {
+          "name": "Search (Main)",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search-history?q={{username}}&category=all&page=1&limit=20",
+              "query": [
+                {
+                  "key": "q",
+                  "description": "Search query - can be username, email, or any text (required)",
+                  "value": "{{username}}"
+                },
+                {
+                  "key": "category",
+                  "description": "Category: all, users, posts, groups",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
+              "path": [
+                "search-history"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Main search endpoint. Searches across users, posts, and groups. Query parameter 'q' is required."
+          }
+        },
+        {
+          "name": "Search Users by Email",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search-history?q={{email}}&category=users&page=1&limit=1",
+              "query": [
+                {
+                  "key": "q",
+                  "description": "Email address to search",
+                  "value": "{{email}}"
+                },
+                {
+                  "key": "category",
+                  "description": "Filter to users only",
+                  "value": "users"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ],
+              "path": [
+                "search-history"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Search for a user by their email address. Uses the main search endpoint with category=users filter."
+          }
+        },
+        {
+          "name": "Global Search (Alternative)",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/global?q={{username}}&limit=10",
+              "query": [
+                {
+                  "key": "q",
+                  "description": "Search query",
+                  "value": "{{username}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "path": [
+                "search",
+                "global"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Alternative global search endpoint (if available on backend)."
+          }
+        },
+        {
+          "name": "Get Search History",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search-history/history",
+              "path": [
+                "search-history",
+                "history"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "GET",
+            "description": "Fetches the authenticated user's recent search history."
+          }
+        },
+        {
+          "name": "Delete Search History Item",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search-history/history/1",
+              "path": [
+                "search-history",
+                "history",
+                "1"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "DELETE",
+            "description": "Removes a single search history item by ID."
+          }
+        },
+        {
+          "name": "Clear All Search History",
+          "response": [],
+          "request": {
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search-history/history",
+              "path": [
+                "search-history",
+                "history"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ]
+            },
+            "method": "DELETE",
+            "description": "Clears all search history for the authenticated user."
+          }
+        }
+      ]
     },
     {
       "name": "Friendship",

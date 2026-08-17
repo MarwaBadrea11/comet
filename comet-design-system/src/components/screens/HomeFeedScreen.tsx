@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, MoreHorizontal, Plus, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2, Edit } from 'lucide-react'
+import { Heart, MessageCircle, MoreHorizontal, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2, Edit } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
-import { useAvatarUrl } from '../ui/UserAvatar'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { DropdownMenu } from '../ui/DropdownMenu'
+import { StoriesTray } from '../ui/StoriesTray'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from '../../hooks/usePostsQuery'
-import { useStoriesFeed } from '../../hooks/useStoriesQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
@@ -19,13 +18,6 @@ import { CreateStoryModal } from './CreateStoryModal'
 import { EditPostModal } from './EditPostModal'
 
 const COSMIC_EMOJIS = ['✨', '🚀', '🪐', '🌌', '☄️', '🔮', '💜', '😎', '😂', '🔥', '👀', '💯']
-
-// Story authors only carry avatarMediaId (no nested avatarMedia object) —
-// resolve the real URL per item so map() stays rules-of-hooks safe.
-function StoryRingAvatar({ name, avatarMediaId }: { name?: string; avatarMediaId?: string | null }) {
-  const src = useAvatarUrl({ name, avatarMediaId })
-  return <img src={src} alt={name} className="w-full h-full rounded-full object-cover border-2 border-white" />
-}
 
 export function HomeFeedScreen() {
   const navigate = useNavigate()
@@ -54,7 +46,6 @@ export function HomeFeedScreen() {
   // ── API Hooks ──────────────────────────────────────────────────────────────
   const { data: profile } = useMe()
   const { data: feed = [], isLoading, isError, error, refetch } = useFeed()
-  const { data: storyGroups = [] } = useStoriesFeed()
   const createPost = useCreatePost()
   const reactToPost = useReactToPost()
   const savePost = useSavePost()
@@ -62,9 +53,13 @@ export function HomeFeedScreen() {
 
   // ── Data Merging (Local + Server) ──────────────────────────────────────────
   const currentAccountLocalPosts = allLocalPosts.filter((p: any) => p.userId === user?.id)
+  const serverPosts = feed.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
+  
+  // Filter out any stories that might have leaked into the feed
+  // Stories should ONLY appear in the stories strip, not in the main feed
   const posts = [
-    ...currentAccountLocalPosts,
-    ...feed.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
+    ...currentAccountLocalPosts.filter((p: any) => !p.story && p.type !== 'STORY'),
+    ...serverPosts.filter((p: any) => !p.story && p.type !== 'STORY')
   ]
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -236,38 +231,8 @@ export function HomeFeedScreen() {
         {/* ── Main column ── */}
         <div className="w-full lg:col-span-2 space-y-6 md:space-y-8 overflow-hidden">
 
-          {/* ── Stories strip ── */}
-          <div className="flex gap-4 md:gap-5 overflow-x-auto pb-3 pt-1 no-scrollbar snap-x w-full">
-            
-            {/* زر إضافة ستوري جديدة */}
-            <div 
-              onClick={() => setIsStoryModalOpen(true)} 
-              className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
-            >
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-sm">
-                <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                  <Plus size={24} className="text-primary" />
-                </div>
-              </div>
-              <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-1.5">Add Story</span>
-            </div>
-
-            {/* عرض الستوريز (مجمّعة حسب صاحبها) */}
-            {storyGroups.map(group => (
-              <div
-                key={group.user.id}
-                onClick={() => navigate('/stories', { state: { startAuthorId: group.user.id } })}
-                className="flex flex-col items-center flex-shrink-0 cursor-pointer group snap-start"
-              >
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] p-[2px] transition-transform group-hover:scale-105 shadow-md">
-                  <StoryRingAvatar name={group.user.name} avatarMediaId={group.user.avatarMediaId} />
-                </div>
-                <span className="text-[11px] md:text-xs font-bold text-on-surface mt-1.5 max-w-[65px] md:max-w-[80px] truncate">
-                  {group.user.name || 'Anonymous'}
-                </span>
-              </div>
-            ))}
-          </div>
+          {/* ── Stories Tray (Separate from Posts Feed) ── */}
+          <StoriesTray onCreateStory={() => setIsStoryModalOpen(true)} />
 
           {/* ── Create Post Box ── */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] p-4 md:p-6 border border-white/60 shadow-sm">

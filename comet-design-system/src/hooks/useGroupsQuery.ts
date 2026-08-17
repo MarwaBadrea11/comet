@@ -39,6 +39,7 @@ export function useJoinGroup() {
       await qc.cancelQueries({ queryKey: queryKeys.groups.all() })
       const previous = qc.getQueryData<Group[]>(queryKeys.groups.all())
 
+      // Optimistically update - set role to Member
       qc.setQueryData<Group[]>(queryKeys.groups.all(), (old) =>
         (old ?? []).map((g) =>
           g.id === groupId ? { ...g, role: 'Member' } : g,
@@ -46,6 +47,15 @@ export function useJoinGroup() {
       )
 
       return { previous }
+    },
+
+    onSuccess: (_data, groupId) => {
+      // Ensure the group has role set (in case 409 was handled silently)
+      qc.setQueryData<Group[]>(queryKeys.groups.all(), (old) =>
+        (old ?? []).map((g) =>
+          g.id === groupId ? { ...g, role: 'Member' } : g,
+        ),
+      )
     },
 
     onError: (_err, _id, ctx) => {
@@ -93,5 +103,15 @@ export function useCreateGroup() {
   return useMutation({
     mutationFn: groupsService.create,
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.groups.all() }),
+  })
+}
+
+// ── Get group posts ───────────────────────────────────────────────────────────
+
+export function useGroupPosts(groupId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.groups.byId(groupId), 'posts'],
+    queryFn: () => groupsService.getGroupPosts(groupId),
+    enabled: !!groupId,
   })
 }

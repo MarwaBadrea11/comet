@@ -8,7 +8,11 @@
  * from services/stories.ts.
  */
 
-import type { PostVisibility } from './post.types'
+/**
+ * Story visibility type.
+ * Matches backend StoryVisibility enum.
+ */
+export type StoryVisibility = 'PUBLIC' | 'FRIENDS' | 'ONLY_ME' | 'CUSTOM' | 'PRIVATE'
 
 export interface StoryMedia {
   media: {
@@ -18,7 +22,7 @@ export interface StoryMedia {
   }
 }
 
-export interface StoryPostUser {
+export interface StoryAuthor {
   id: string
   username: string
   name: string
@@ -29,9 +33,9 @@ export interface StoryPost {
   id: string
   userId: string
   content: string | null
-  visibility: PostVisibility
+  visibility: StoryVisibility
   createdAt: string
-  user: StoryPostUser
+  user: StoryAuthor
   media: StoryMedia[]
 }
 
@@ -44,20 +48,27 @@ export interface Story {
   post: StoryPost
 }
 
-export interface StoryFeedGroup {
-  user: StoryPostUser
+export interface StoryGroup {
+  user: StoryAuthor
   stories: Story[]
 }
 
-export interface CreateStoryRequest {
+export interface CreateStoryPayload {
   content?: string
-  visibility?: PostVisibility
+  visibility?: StoryVisibility
   mediaIds?: string[]
   duration?: number
 }
 
-export interface UpdateStoryRequest {
+export interface UpdateStoryPayload {
   content?: string
-  visibility?: PostVisibility
   duration?: number
 }
+
+// Legacy aliases for backward compatibility
+/** @deprecated Use StoryGroup instead */
+export type StoryFeedGroup = StoryGroup
+/** @deprecated Use CreateStoryPayload instead */
+export type CreateStoryRequest = CreateStoryPayload
+/** @deprecated Use UpdateStoryPayload instead */
+export type UpdateStoryRequest = UpdateStoryPayload

@@ -16,7 +16,9 @@ import { MessagesScreen }         from './components/screens/MessagesScreen'
 import { FriendRequestsScreen }   from './components/screens/FriendRequestsScreen'
 import { NotificationsScreen }    from './components/screens/NotificationsScreen'
 import { SearchScreen }           from './components/screens/SearchScreen'
+import { UsersScreen }            from './components/screens/UsersScreen'
 import { GroupsScreen }           from './components/screens/GroupsScreen'
+import { GroupDetailScreen }      from './components/screens/GroupDetailScreen'
 import { SettingsScreen }         from './components/screens/SettingsScreen'
 import { EditProfileScreen }      from './components/screens/EditProfileScreen'
 import { useUIStore }             from './stores/uiStore'
@@ -139,10 +141,26 @@ export default function App() {
             }
           />
           <Route
+            path="/users"
+            element={
+              <ProtectedRoute>
+                <AppShell><UsersScreen /></AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/groups"
             element={
               <ProtectedRoute>
                 <AppShell><GroupsScreen /></AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId"
+            element={
+              <ProtectedRoute>
+                <AppShell><GroupDetailScreen /></AppShell>
               </ProtectedRoute>
             }
           />

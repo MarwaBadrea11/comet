@@ -16,7 +16,6 @@ export interface Group {
   requiresApproval?: boolean
   membersCount?: number
   role?: string | null
-  membershipStatus?: 'ACTIVE' | 'PENDING' | null
   createdAt?: string
   ownerId?: string
   creatorId?: string  // Backend uses creatorId
@@ -57,50 +56,22 @@ export const groupsService = {
 
   /**
    * POST /group/:id/join
-   * Throws structured errors for proper handling in UI
+   * Joins a public group immediately
    */
   join: async (id: string): Promise<void> => {
     try {
-    await api.post(`/group/${id}/join`)
+      await api.post(`/group/${id}/join`)
     } catch (err: any) {
       const status = err.response?.status
       const message = err.response?.data?.message || err.message
 
-      // Enhanced error information for UI handling
+      // 409 Conflict means already a member - treat as success
       if (status === 409) {
-        throw {
-          status: 409,
-          code: 'ALREADY_MEMBER',
-          message: message || 'You are already a member of this group',
-          originalError: err,
-        }
+        return // Silently succeed - user is already a member
       }
 
-      if (status === 403) {
-        throw {
-          status: 403,
-          code: 'FORBIDDEN',
-          message: message || 'You cannot join this group',
-          originalError: err,
-        }
-      }
-
-      if (status === 401) {
-        throw {
-          status: 401,
-          code: 'UNAUTHORIZED',
-          message: 'Please log in to join groups',
-          originalError: err,
-        }
-      }
-
-      // Re-throw with enhanced info
-      throw {
-        status: status || 500,
-        code: 'JOIN_FAILED',
-        message: message || 'Failed to join group',
-        originalError: err,
-      }
+      // Re-throw other errors
+      throw err
     }
   },
 
@@ -127,6 +98,15 @@ export const groupsService = {
    */
   remove: async (id: string): Promise<void> => {
     await api.delete(`/group/${id}`)
+  },
+
+  /**
+   * GET /group/:id/posts
+   * Get all posts in a specific group
+   */
+  getGroupPosts: async (id: string): Promise<any[]> => {
+    const { data } = await api.get(`/group/${id}/posts`)
+    return Array.isArray(data) ? data : data?.posts ?? []
   },
 
   /**

@@ -13,8 +13,10 @@ const STORY_DURATION = 5000 // 5 seconds per story
 
 interface DisplayStory {
   id: string
+  userId: string
   content: string | null
   createdAt: string
+  expiresAt: string
   mediaUrl?: string
   user: { id: string; name: string; avatarMediaId?: string | null }
 }
@@ -24,15 +26,19 @@ export function StoriesScreen() {
   const location = useLocation()
   const startAuthorId = (location.state as { startAuthorId?: string } | null)?.startAuthorId
 
-  const { data: storyGroups = [] } = useStoriesFeed()
+  const { data: storyGroups = [], isError, error } = useStoriesFeed()
+  const deleteStory = useDeleteStory()
+  const currentUser = useAuthStore(state => state.user)
 
   // ── Flatten grouped stories into one ordered playback list ──
   const stories = useMemo<DisplayStory[]>(() => {
     return storyGroups.flatMap(group =>
       group.stories.map(story => ({
         id: String(story.id),
+        userId: String(story.post.userId),
         content: story.post.content,
         createdAt: story.createdAt,
+        expiresAt: story.expiresAt,
         mediaUrl: getStoryMediaUrl(story),
         user: { id: String(group.user.id), name: group.user.name, avatarMediaId: group.user.avatarMediaId },
       })),
@@ -58,6 +64,8 @@ export function StoriesScreen() {
     name: currentStory?.user?.name,
     avatarMediaId: currentStory?.user?.avatarMediaId,
   })
+
+  const isOwnStory = currentUser?.id === currentStory?.userId
 
   // ── Progress Timer ──
   useEffect(() => {
@@ -110,6 +118,51 @@ export function StoriesScreen() {
     // Story reactions aren't a backend concept (ReactableType is POST | COMMENT only) —
     // this is a local, cosmetic-only heart toggle.
     setIsLiked(!isLiked)
+  }
+
+  const handleDelete = () => {
+    if (!isOwnStory) return
+    
+    if (!confirm('Delete this story? This action cannot be undone.')) return
+
+    deleteStory.mutate(currentStory.id, {
+      onSuccess: () => {
+        toast.success('Story deleted successfully')
+        handleNext()
+      },
+      onError: (err: any) => {
+        const status = err.response?.status
+        const message = err.response?.data?.message || err.message
+
+        if (status === 401) {
+          toast.error('Session expired. Please login again.')
+        } else if (status === 403) {
+          toast.error('You do not have permission to delete this story.')
+        } else if (status === 404) {
+          toast.error('Story not found or already deleted.')
+        } else {
+          toast.error(message || 'Failed to delete story. Please try again.')
+        }
+      },
+    })
+  }
+
+  // ── Error State ──
+  if (isError) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[200]">
+        <div className="text-center space-y-4 max-w-md px-6">
+          <p className="text-white/60 text-lg">Failed to load stories</p>
+          <p className="text-white/40 text-sm">{(error as any)?.message || 'An error occurred'}</p>
+          <button
+            onClick={handleClose}
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ── Empty State ──
@@ -182,6 +235,15 @@ export function StoriesScreen() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isOwnStory && (
+              <button
+                onClick={handleDelete}
+                disabled={deleteStory.isPending}
+                className="p-2 bg-black/20 backdrop-blur-sm hover:bg-red-600/40 text-white rounded-full transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
             <button
               onClick={togglePause}
               className="p-2 bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white rounded-full transition-colors"
@@ -208,13 +270,24 @@ export function StoriesScreen() {
             className="w-full h-full flex items-center justify-center relative"
           >
             {currentStory?.mediaUrl ? (
-              /* Image Story */
-              <img
-                src={currentStory.mediaUrl}
-                alt="Story content"
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
+              /* Media Story */
+              currentStory.mediaUrl.match(/\.(mp4|mov|avi|webm)$/i) ? (
+                <video
+                  src={currentStory.mediaUrl}
+                  className="w-full h-full object-contain"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={currentStory.mediaUrl}
+                  alt="Story content"
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
+              )
             ) : (
               /* Text Story with Gradient Background */
               <div className="w-full h-full bg-gradient-to-br from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] flex items-center justify-center p-8">

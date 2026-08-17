@@ -5,25 +5,38 @@ import { Search, Loader2, Mail, User, MapPin, CheckCircle, XCircle, Calendar } f
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Avatar } from '../ui/Avatar'
-import { UserActions } from '../ui/UserActions'
-import { useUserSearchByEmail } from '../../hooks/useUserSearchByEmail'
-
+import { useSearch } from '../../hooks/useSearchQuery'
 
 export function SearchScreen() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const { searchByEmail, clearResults, user, isLoading, isError, error } = useUserSearchByEmail()
+  const [emailInput, setEmailInput] = useState('')
+  const [activeQuery, setActiveQuery] = useState('')
+
+  // استخدام هوك useSearch مع تحديد فئة 'users' للبحث في المستخدمين فقط
+  const { data: searchResponse, isLoading, isError, error } = useSearch(
+    activeQuery,
+    'users'
+  )
+
+  // استخراج قائمة المستخدمين من الاستجابة
+  const users = searchResponse?.users || searchResponse?.data || (Array.isArray(searchResponse) ? searchResponse : [])
+
+  // المطابقة بناءً على البريد الإلكتروني
+  const foundUser = activeQuery && users.length > 0
+    ? users.find((u: any) => u.email?.toLowerCase() === activeQuery.toLowerCase()) || users[0]
+    : null
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (email.trim()) {
-      searchByEmail(email.trim())
+    const trimmed = emailInput.trim()
+    if (trimmed) {
+      setActiveQuery(trimmed)
     }
   }
 
   const handleClearSearch = () => {
-    setEmail('')
-    clearResults()
+    setEmailInput('')
+    setActiveQuery('')
   }
 
   return (
@@ -47,8 +60,8 @@ export function SearchScreen() {
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-5 h-5" />
               <Input
                 type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                value={emailInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailInput(e.target.value)}
                 placeholder="user@example.com"
                 className="w-full pl-14 pr-12 h-14 bg-surface-container-high/40 rounded-2xl border-none text-base focus-visible:ring-2 focus-visible:ring-primary/20 transition-all placeholder:text-on-surface-variant/40"
               />
@@ -56,21 +69,21 @@ export function SearchScreen() {
                 <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 animate-spin text-primary w-5 h-5" />
               )}
             </div>
-            
-            <Button 
-              type="submit" 
-              variant="primary" 
+
+            <Button
+              type="submit"
+              variant="primary"
               size="lg"
-              disabled={!email.trim() || isLoading}
+              disabled={!emailInput.trim() || isLoading}
               className="h-14 px-8 rounded-2xl font-bold"
             >
               Search
             </Button>
-            
-            {(email || user) && (
-              <Button 
+
+            {(emailInput || activeQuery) && (
+              <Button
                 type="button"
-                variant="ghost" 
+                variant="ghost"
                 size="lg"
                 onClick={handleClearSearch}
                 className="h-14 px-6 rounded-2xl font-bold"
@@ -85,7 +98,7 @@ export function SearchScreen() {
       <main className="max-w-5xl mx-auto px-6 mt-8">
         {/* Error State */}
         {isError && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-error/10 border border-error/20 rounded-2xl p-6 flex items-start gap-4"
@@ -101,8 +114,8 @@ export function SearchScreen() {
         )}
 
         {/* No Results State */}
-        {!isLoading && !isError && !user && email && (
-          <motion.div 
+        {!isLoading && !isError && !foundUser && activeQuery && (
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/40 border border-white/20 rounded-2xl p-12 text-center"
@@ -110,15 +123,15 @@ export function SearchScreen() {
             <User className="w-16 h-16 text-on-surface-variant/30 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-on-surface mb-2">No User Found</h3>
             <p className="text-sm text-on-surface-variant/70 max-w-md mx-auto">
-              We couldn't find a user with the email address <span className="font-semibold text-on-surface">"{email}"</span>. 
+              We couldn't find a user with the email address <span className="font-semibold text-on-surface">"{activeQuery}"</span>.
               Please check the email and try again.
             </p>
           </motion.div>
         )}
 
         {/* User Profile Card - Results */}
-        {user && !isLoading && (
-          <motion.div 
+        {foundUser && !isLoading && (
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/60 border border-white/40 rounded-[2rem] shadow-lg overflow-hidden"
@@ -126,10 +139,10 @@ export function SearchScreen() {
             {/* Cover Section */}
             <div className="h-32 md:h-40 bg-gradient-to-br from-primary/20 via-[#00D4FF]/10 to-primary/30 relative">
               <div className="absolute -bottom-16 left-8">
-                <Avatar 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  size="xl" 
+                <Avatar
+                  src={foundUser.avatar}
+                  alt={foundUser.name || 'User Avatar'}
+                  size="xl"
                   className="border-4 border-white shadow-xl w-32 h-32"
                 />
               </div>
@@ -141,45 +154,46 @@ export function SearchScreen() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-2xl md:text-3xl font-headline font-bold text-on-surface">
-                      {user.name}
+                      {foundUser.name || 'User Name'}
                     </h2>
-                    {user.role === 'ADMIN' && (
+                    {foundUser.role === 'ADMIN' && (
                       <CheckCircle className="text-primary w-6 h-6" aria-label="Verified" />
                     )}
                   </div>
-                  <p className="text-base text-on-surface-variant/70 mb-1">@{user.username}</p>
-                  {user.email && (
+                  {foundUser.username && (
+                    <p className="text-base text-on-surface-variant/70 mb-1">@{foundUser.username}</p>
+                  )}
+                  {foundUser.email && (
                     <div className="flex items-center gap-2 text-sm text-on-surface-variant/60">
                       <Mail className="w-4 h-4" />
-                      <span>{user.email}</span>
+                      <span>{foundUser.email}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex gap-3">
-                  <Button 
-                    variant="secondary" 
-                    size="md" 
+                  <Button
+                    variant="secondary"
+                    size="md"
                     className="rounded-xl font-bold px-6"
-                    onClick={() => navigate(`/profile/${user.id}`)}
+                    onClick={() => navigate(`/profile/${foundUser.id}`)}
                   >
                     View Profile
                   </Button>
-                  {user.id && <UserActions userId={user.id} compact />}
                 </div>
               </div>
 
               {/* Bio */}
-              {user.bio && (
+              {foundUser.bio && (
                 <div className="mb-6 p-4 bg-surface-container-high/20 rounded-xl">
-                  <p className="text-sm text-on-surface-variant leading-relaxed">{user.bio}</p>
+                  <p className="text-sm text-on-surface-variant leading-relaxed">{foundUser.bio}</p>
                 </div>
               )}
 
               {/* User Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Location */}
-                {(user.city || user.country) && (
+                {(foundUser.city || foundUser.country) && (
                   <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
                     <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
@@ -187,14 +201,14 @@ export function SearchScreen() {
                         Location
                       </p>
                       <p className="text-sm font-medium text-on-surface">
-                        {[user.city, user.country].filter(Boolean).join(', ')}
+                        {[foundUser.city, foundUser.country].filter(Boolean).join(', ')}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Gender */}
-                {user.gender && (
+                {foundUser.gender && (
                   <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
                     <User className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
@@ -202,14 +216,14 @@ export function SearchScreen() {
                         Gender
                       </p>
                       <p className="text-sm font-medium text-on-surface capitalize">
-                        {user.gender.toLowerCase().replace(/_/g, ' ')}
+                        {foundUser.gender.toLowerCase().replace(/_/g, ' ')}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Role */}
-                {user.role && (
+                {foundUser.role && (
                   <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
                     <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
@@ -217,14 +231,14 @@ export function SearchScreen() {
                         Role
                       </p>
                       <p className="text-sm font-medium text-on-surface capitalize">
-                        {user.role.toLowerCase()}
+                        {foundUser.role.toLowerCase()}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Member Since */}
-                {user.createdAt && (
+                {foundUser.createdAt && (
                   <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
                     <Calendar className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
@@ -232,7 +246,7 @@ export function SearchScreen() {
                         Member Since
                       </p>
                       <p className="text-sm font-medium text-on-surface">
-                        {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        {new Date(foundUser.createdAt).toLocaleDateString('en-US', {
                           month: 'long',
                           year: 'numeric'
                         })}
@@ -246,8 +260,8 @@ export function SearchScreen() {
         )}
 
         {/* Empty State - Initial */}
-        {!email && !user && !isLoading && (
-          <motion.div 
+        {!activeQuery && !foundUser && !isLoading && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-20"
