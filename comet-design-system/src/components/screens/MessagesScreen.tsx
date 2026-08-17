@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users } from 'lucide-react'
+import { Search, Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users, Crown } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Input } from '../ui/Input'
@@ -35,7 +36,7 @@ function MessageBubble({ message, isMe, showAvatar }: { message: MessageItem; is
           </div>
         )}
         {message.content && (
-          <div className={`p-4 rounded-2xl shadow-sm ${isMe ? 'bg-gradient-to-br from-primary to-primary-container rounded-br-none' : 'bg-surface-container-lowest rounded-bl-none'}`}>
+          <div className={`p-4 rounded-2xl shadow-sm ${isMe ? 'bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] rounded-br-none' : 'bg-surface-container-lowest rounded-bl-none'}`}>
             <p className={`text-sm leading-relaxed ${isMe ? 'text-white' : 'text-on-surface'}`}>{message.content}</p>
           </div>
         )}
@@ -44,6 +45,121 @@ function MessageBubble({ message, isMe, showAvatar }: { message: MessageItem; is
         </span>
       </div>
     </div>
+  )
+}
+
+function GroupInfoModal({ conversation, onClose }: { conversation: Conversation; onClose: () => void }) {
+  const currentUser = useAuthStore(s => s.user)
+  
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm" 
+        onClick={onClose} 
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[85vh]"
+        >
+          {/* Header */}
+          <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 shrink-0">
+            <h2 className="font-headline text-lg font-bold text-on-surface">Group Info</h2>
+            <button 
+              onClick={onClose} 
+              className="p-2 hover:bg-surface rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Group Details */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Avatar, Name, Description */}
+            <div className="flex flex-col items-center gap-3 p-6 border-b border-outline-variant/10">
+              {conversation.avatarMediaId ? (
+                <ParticipantAvatar 
+                  name={conversation.name ?? 'Group'} 
+                  avatarMediaId={conversation.avatarMediaId} 
+                  size="xl" 
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center">
+                  <Users size={32} className="text-white" />
+                </div>
+              )}
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-on-surface mb-1">
+                  {conversation.name ?? 'Unnamed Group'}
+                </h3>
+                {conversation.description && (
+                  <p className="text-sm text-on-surface-variant">
+                    {conversation.description}
+                  </p>
+                )}
+                <p className="text-xs text-on-surface-variant/60 mt-2">
+                  {conversation.participants?.length ?? 0} members
+                </p>
+              </div>
+            </div>
+
+            {/* Members List */}
+            <div className="px-6 py-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">
+                Members
+              </h4>
+              <div className="space-y-2">
+                {conversation.participants?.map((participant) => {
+                  const isCurrentUser = String(participant.user.id) === String(currentUser?.id)
+                  const isAdmin = participant.role === 'ADMIN'
+                  
+                  return (
+                    <div
+                      key={participant.id}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-low transition-colors"
+                    >
+                      <ParticipantAvatar
+                        name={participant.user.name}
+                        avatarMediaId={participant.user.avatarMediaId}
+                        size="sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-on-surface truncate">
+                            {participant.user.name}
+                            {isCurrentUser && <span className="text-on-surface-variant ml-1">(You)</span>}
+                          </p>
+                          {isAdmin && (
+                            <Crown size={14} className="text-[#FFD700] shrink-0" />
+                          )}
+                        </div>
+                        {participant.user.username && (
+                          <p className="text-xs text-on-surface-variant truncate">
+                            @{participant.user.username}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {isAdmin && (
+                          <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </>
   )
 }
 
@@ -136,6 +252,7 @@ export function MessagesScreen() {
   const [showChat, setShowChat]         = useState(false)
   const [showNewConv, setShowNewConv]   = useState(false)
   const [showCreateGroup, setShowCreateGroup] = useState(false)
+  const [showGroupInfo, setShowGroupInfo] = useState(false)
   const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -237,7 +354,7 @@ export function MessagesScreen() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCreateGroup(true)}
-                className="h-9 px-3 flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-[#00D4FF] text-white hover:opacity-90 transition-opacity text-sm font-semibold"
+                className="h-9 px-3 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white hover:opacity-90 transition-opacity text-sm font-semibold"
                 aria-label="Create group"
               >
                 <Users size={16} />
@@ -245,7 +362,7 @@ export function MessagesScreen() {
               </button>
               <button
                 onClick={() => setShowNewConv(true)}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white hover:opacity-90 transition-opacity shrink-0"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white hover:opacity-90 transition-opacity shrink-0"
                 aria-label="New message"
               >
                 <Plus size={18} />
@@ -326,29 +443,44 @@ export function MessagesScreen() {
           <>
             {/* Header */}
             <header className="h-14 lg:h-16 flex items-center justify-between px-4 lg:px-8 bg-white/70 backdrop-blur-2xl z-10 border-b border-outline-variant/10 shrink-0">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button onClick={() => setShowChat(false)} className="sm:hidden p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors mr-1">
                   <ArrowLeft size={20} />
                 </button>
                 {activeConv.type === 'GROUP' ? (
-                  activeConv.avatarMediaId ? (
-                    <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConv.avatarMediaId} size="sm" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
-                      <Users size={16} className="text-white" />
+                  <button
+                    onClick={() => setShowGroupInfo(true)}
+                    className="flex items-center gap-3 hover:bg-surface-container-low rounded-xl px-2 py-1.5 -ml-2 transition-colors cursor-pointer flex-1 min-w-0"
+                  >
+                    {activeConv.avatarMediaId ? (
+                      <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConv.avatarMediaId} size="sm" className="shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center shrink-0">
+                        <Users size={16} className="text-white" />
+                      </div>
+                    )}
+                    <div className="text-left flex-1 min-w-0">
+                      <h2 className="font-headline font-bold text-on-surface text-sm lg:text-base truncate">{convName(activeConv)}</h2>
+                      <span className="text-[10px] text-on-surface-variant/60">
+                        {activeConv.participants?.length ?? 0} members
+                      </span>
                     </div>
-                  )
+                  </button>
                 ) : (
-                  <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConvOther?.avatarMediaId} size="sm" />
+                  <>
+                    {activeConv.avatarMediaId ? (
+                      <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConv.avatarMediaId} size="sm" />
+                    ) : (
+                      <ParticipantAvatar name={convName(activeConv)} avatarMediaId={activeConvOther?.avatarMediaId} size="sm" />
+                    )}
+                    <div>
+                      <h2 className="font-headline font-bold text-on-surface text-sm lg:text-base">{convName(activeConv)}</h2>
+                      <span className="text-[10px] text-on-surface-variant/60">Direct message</span>
+                    </div>
+                  </>
                 )}
-                <div>
-                  <h2 className="font-headline font-bold text-on-surface text-sm lg:text-base">{convName(activeConv)}</h2>
-                  <span className="text-[10px] text-on-surface-variant/60">
-                    {activeConv.type === 'GROUP' ? `${activeConv.participants?.length ?? 0} members` : 'Direct message'}
-                  </span>
-                </div>
               </div>
-              <div className="flex items-center gap-3 lg:gap-5">
+              <div className="flex items-center gap-3 lg:gap-5 shrink-0">
                 {([<Phone size={18} />, <Video size={18} />, <Info size={18} />] as React.ReactNode[]).map((icon, i) => (
                   <button key={i} className="text-on-surface-variant hover:text-primary transition-colors hidden sm:block">{icon}</button>
                 ))}
@@ -403,7 +535,7 @@ export function MessagesScreen() {
                   placeholder="Type your celestial message..."
                   rows={1}
                 />
-                <button type="submit" disabled={sendMessage.isPending || uploadMedia.isPending || (!msg.trim() && !pendingImage)} className="w-10 h-10 bg-primary text-white flex items-center justify-center rounded-full shadow-md hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50">
+                <button type="submit" disabled={sendMessage.isPending || uploadMedia.isPending || (!msg.trim() && !pendingImage)} className="w-10 h-10 bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white flex items-center justify-center rounded-full shadow-md hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50">
                   {sendMessage.isPending || uploadMedia.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={16} />}
                 </button>
               </form>
@@ -422,6 +554,13 @@ export function MessagesScreen() {
             setActiveConvId(conversationId)
             setShowChat(true)
           }}
+        />
+      )}
+
+      {showGroupInfo && activeConv && activeConv.type === 'GROUP' && (
+        <GroupInfoModal
+          conversation={activeConv}
+          onClose={() => setShowGroupInfo(false)}
         />
       )}
     </div>
