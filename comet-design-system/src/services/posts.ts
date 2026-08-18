@@ -139,6 +139,22 @@ export const postsService = {
   },
 
   /**
+   * DELETE /post/save/:postId
+   */
+  unsavePost: async (postId: string): Promise<void> => {
+    await api.delete(`/post/save/${postId}`)
+  },
+
+  /**
+   * GET /post/saved?page=1&pageSize=20
+   * The current user's saved posts.
+   */
+  getSavedPosts: async (page = 1, pageSize = 20): Promise<Post[]> => {
+    const { data } = await api.get('/post/saved', { params: { page, pageSize } })
+    return Array.isArray(data) ? data : []
+  },
+
+  /**
    * POST /post/hide/:postId
    * Hides a post from the user's feed (backend uses upsert on hiddenPost table)
    */

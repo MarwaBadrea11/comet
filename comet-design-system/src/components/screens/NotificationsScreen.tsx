@@ -1,30 +1,54 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, MessageCircle, UserPlus, AtSign, MoreHorizontal, Loader2, Bell } from 'lucide-react'
+import { Heart, MessageCircle, UserPlus, UserCheck, AtSign, Mail, MoreHorizontal, Loader2, Bell } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
-import { Button } from '../ui/Button'
-import { motionVariants } from '../../lib/theme'
+import { useAvatarUrl } from '../ui/UserAvatar'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../hooks/useNotificationsQuery'
-import type { Notification } from '../../services/notifications'
+import { categorizeNotification, type Notification, type NotificationCategory } from '../../services/notifications'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getIcon(type?: string) {
-  switch (type?.toLowerCase()) {
-    case 'like': case 'reaction': return <Heart size={14} fill="currentColor" />
-    case 'comment': case 'reply': return <MessageCircle size={14} fill="currentColor" />
-    case 'follow': case 'friend': return <UserPlus size={14} />
-    case 'mention':               return <AtSign size={14} fill="currentColor" />
-    default:                      return <Bell size={14} />
+function getIcon(type: string) {
+  switch (type) {
+    case 'LIKE':                     return <Heart size={14} fill="currentColor" />
+    case 'COMMENT':                  return <MessageCircle size={14} fill="currentColor" />
+    case 'FRIEND_REQUEST':           return <UserPlus size={14} />
+    case 'FRIEND_REQUEST_ACCEPTED':  return <UserCheck size={14} />
+    case 'MENTION':                  return <AtSign size={14} fill="currentColor" />
+    case 'MESSAGE':                  return <Mail size={14} fill="currentColor" />
+    default:                         return <Bell size={14} />
   }
 }
 
-function getIconBg(type?: string) {
-  switch (type?.toLowerCase()) {
-    case 'like': case 'reaction': return 'bg-gradient-to-br from-[#6B46C0] to-[#00D4FF]'
-    case 'comment': case 'reply': return 'bg-[#00D4FF]'
-    case 'follow': case 'friend': return 'bg-cyan-400'
-    case 'mention':               return 'bg-violet-500'
-    default:                      return 'bg-surface-container-high'
+function getIconBg(type: string) {
+  switch (type) {
+    case 'LIKE':                     return 'bg-gradient-to-br from-[#6B46C0] to-[#00D4FF]'
+    case 'COMMENT':                  return 'bg-[#00D4FF]'
+    case 'FRIEND_REQUEST':           return 'bg-cyan-400'
+    case 'FRIEND_REQUEST_ACCEPTED':  return 'bg-emerald-400'
+    case 'MENTION':                  return 'bg-violet-500'
+    case 'MESSAGE':                  return 'bg-amber-400'
+    default:                         return 'bg-surface-container-high'
+  }
+}
+
+function getMessage(item: Notification): string {
+  switch (item.type) {
+    case 'LIKE':
+      return item.entityType === 'COMMENT' ? 'reacted to your comment.' : 'reacted to your post.'
+    case 'COMMENT':
+      return 'commented on your post.'
+    case 'FRIEND_REQUEST':
+      return 'sent you a friend request.'
+    case 'FRIEND_REQUEST_ACCEPTED':
+      return 'accepted your friend request.'
+    case 'MENTION':
+      return 'mentioned you in a comment.'
+    case 'MESSAGE':
+      return item.data?.preview ? `sent you a message: "${item.data.preview}"` : 'sent you a message.'
+    default:
+      return 'interacted with your content.'
   }
 }
 
@@ -37,26 +61,46 @@ function formatTime(d?: string) {
   return `${day}d ago`
 }
 
+/** Where tapping a notification should take you. */
+function getNotificationLink(item: Notification): string | null {
+  switch (item.type) {
+    case 'FRIEND_REQUEST':
+      return '/friend-requests'
+    case 'FRIEND_REQUEST_ACCEPTED':
+      return item.actorId ? `/profile/${item.actorId}` : null
+    case 'MESSAGE':
+      return '/messages'
+    case 'LIKE':
+      return item.entityType === 'POST' && item.entityId ? `/post/${item.entityId}` : null
+    case 'COMMENT':
+    case 'MENTION':
+      return item.data?.postId ? `/post/${item.data.postId}` : null
+    default:
+      return null
+  }
+}
+
 // ── NotifItem ─────────────────────────────────────────────────────────────────
 
-function NotifItem({ item, onRead }: { item: Notification; onRead: (id: string) => void }) {
+function NotifItem({ item, onRead, onNavigate }: { item: Notification; onRead: (id: string) => void; onNavigate: (link: string) => void }) {
   const actorName = item.actor?.name ?? 'Someone'
-  const isSystem  = item.type === 'system' || item.type === 'achievement'
-  const avatarSrc = item.actor?.avatar ?? `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(actorName)}`
+  const avatarSrc = useAvatarUrl({ name: actorName, avatarMediaId: item.actor?.avatarMediaId })
+  const link = getNotificationLink(item)
+
+  const handleClick = () => {
+    if (!item.isRead) onRead(item.id)
+    if (link) onNavigate(link)
+  }
 
   return (
     <motion.div
-      {...motionVariants.fadeIn}
-      className={`group relative flex items-center gap-6 p-5 md:p-6 bg-surface-container-lowest rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.03)] hover:shadow-[0_20px_40px_rgba(107,70,192,0.08)] transition-all duration-300 ${item.isRead ? 'opacity-70' : ''}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={handleClick}
+      className={`group relative flex items-center gap-6 p-5 md:p-6 bg-surface-container-lowest rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.03)] hover:shadow-[0_20px_40px_rgba(107,70,192,0.08)] transition-all duration-300 ${link ? 'cursor-pointer' : ''} ${item.isRead ? 'opacity-70' : ''}`}
     >
       <div className="relative shrink-0">
-        {isSystem ? (
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-tr from-primary/10 to-[#00D4FF]/10 flex items-center justify-center border-2 border-white">
-            <span className="material-symbols-outlined text-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-          </div>
-        ) : (
-          <Avatar src={avatarSrc} alt={actorName} size="lg" />
-        )}
+        <Avatar src={avatarSrc} alt={actorName} size="lg" />
         <div className={`absolute -bottom-1 -right-1 ${getIconBg(item.type)} p-1 rounded-full border-2 border-white text-white`}>
           {getIcon(item.type)}
         </div>
@@ -64,40 +108,57 @@ function NotifItem({ item, onRead }: { item: Notification; onRead: (id: string) 
 
       <div className="flex-grow min-w-0">
         <p className="text-on-surface text-sm leading-relaxed">
-          {isSystem
-            ? <><strong>System:</strong> {item.message ?? 'You have a new notification.'}</>
-            : <><strong>{actorName}</strong> {item.message ?? 'interacted with your content.'}</>
-          }
+          <strong>{actorName}</strong> {getMessage(item)}
         </p>
         <span className="text-xs text-on-surface-variant/60 mt-1 block">{formatTime(item.createdAt)}</span>
       </div>
 
-      {item.type === 'follow' && <Button variant="secondary" size="sm">Follow back</Button>}
-
-      <button onClick={() => onRead(item.id)} className="hidden group-hover:flex p-2 text-on-surface-variant hover:text-primary transition-colors">
-        <MoreHorizontal size={18} />
-      </button>
+      {!item.isRead && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRead(item.id) }}
+          className="hidden group-hover:flex p-2 text-on-surface-variant hover:text-primary transition-colors"
+          aria-label="Mark as read"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      )}
     </motion.div>
   )
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
+const TABS: Array<{ id: NotificationCategory; label: string; description: string }> = [
+  { id: 'direct', label: 'Direct', description: 'Friend requests, mentions & messages' },
+  { id: 'activity', label: 'Activity', description: 'Likes & comments on your posts' },
+]
+
 export function NotificationsScreen() {
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<NotificationCategory>('direct')
   const { data: notifications = [], isLoading, isError, refetch } = useNotifications()
   const markRead    = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
 
+  const grouped = notifications.reduce<Record<NotificationCategory, Notification[]>>(
+    (acc, n) => {
+      acc[categorizeNotification(n.type)].push(n)
+      return acc
+    },
+    { direct: [], activity: [] },
+  )
+
+  const visible = grouped[tab]
   const now    = Date.now()
-  const today  = notifications.filter(n => !n.createdAt || (now - new Date(n.createdAt).getTime()) < 86400000)
-  const older  = notifications.filter(n => n.createdAt && (now - new Date(n.createdAt).getTime()) >= 86400000)
-  const hasUnread = notifications.some(n => !n.isRead)
+  const today  = visible.filter(n => !n.createdAt || (now - new Date(n.createdAt).getTime()) < 86400000)
+  const older  = visible.filter(n => n.createdAt && (now - new Date(n.createdAt).getTime()) >= 86400000)
+  const hasUnread = visible.some(n => !n.isRead)
 
   return (
     <div className="pt-8 md:pt-12 pb-20 px-4 md:px-12 flex justify-center">
       <div className="max-w-4xl w-full">
 
-        <div className="flex justify-between items-end mb-8 md:mb-12">
+        <div className="flex justify-between items-end mb-8">
           <div>
             <h1 className="font-headline text-3xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">Notifications</h1>
             <p className="text-on-surface-variant text-base md:text-lg">Your cosmic interactions and updates.</p>
@@ -114,6 +175,30 @@ export function NotificationsScreen() {
           )}
         </div>
 
+        {/* Category tabs */}
+        <div className="flex gap-2 mb-10 p-1 bg-surface-container-low rounded-2xl border border-outline-variant/15 w-fit">
+          {TABS.map(t => {
+            const count = grouped[t.id].filter(n => !n.isRead).length
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  tab === t.id ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-primary text-white">
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-on-surface-variant/60 -mt-8 mb-8">{TABS.find(t => t.id === tab)?.description}</p>
+
         {isLoading && <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>}
 
         {isError && (
@@ -123,7 +208,7 @@ export function NotificationsScreen() {
           </div>
         )}
 
-        {!isLoading && !isError && notifications.length === 0 && (
+        {!isLoading && !isError && visible.length === 0 && (
           <div className="text-center py-20">
             <Bell className="w-16 h-16 text-primary/20 mx-auto mb-4" />
             <p className="text-on-surface-variant font-medium">You're all caught up!</p>
@@ -137,7 +222,7 @@ export function NotificationsScreen() {
               <div className="h-px flex-grow bg-outline-variant/15" />
             </div>
             <div className="flex flex-col gap-4">
-              {today.map(n => <NotifItem key={n.id} item={n} onRead={id => markRead.mutate(id)} />)}
+              {today.map(n => <NotifItem key={n.id} item={n} onRead={id => markRead.mutate(id)} onNavigate={navigate} />)}
             </div>
           </section>
         )}
@@ -149,7 +234,7 @@ export function NotificationsScreen() {
               <div className="h-px flex-grow bg-outline-variant/15" />
             </div>
             <div className="flex flex-col gap-4">
-              {older.map(n => <NotifItem key={n.id} item={n} onRead={id => markRead.mutate(id)} />)}
+              {older.map(n => <NotifItem key={n.id} item={n} onRead={id => markRead.mutate(id)} onNavigate={navigate} />)}
             </div>
           </section>
         )}
