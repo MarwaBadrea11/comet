@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'transition-all duration-300',
               'focus:ring-2 focus:ring-primary/20',
               isSearch
-                ? 'bg-white shadow-[0_20px_40px_rgba(107,70,192,0.06)] rounded-full py-3.5 focus:ring-2'
+                ? 'bg-surface-container-lowest shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.25)] rounded-full py-3.5 focus:ring-2'
                 : 'bg-surface-container-low rounded-2xl py-3.5 focus:bg-surface-container-lowest',
               leadingIcon ? 'pl-12' : 'pl-5',
               trailingIcon ? 'pr-12' : 'pr-5',

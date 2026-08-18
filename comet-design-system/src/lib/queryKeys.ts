@@ -19,6 +19,7 @@ export const queryKeys = {
     feed:       (page: number, size: number)    => ['posts', 'feed', page, size] as const,
     byId:       (id: string)                    => ['posts', 'detail', id] as const,
     byUsername: (username: string)              => ['posts', 'user', username] as const,
+    saved:      (page: number, size: number)    => ['posts', 'saved', page, size] as const,
   },
 
   // ── Comments ──────────────────────────────────────────────────────────────

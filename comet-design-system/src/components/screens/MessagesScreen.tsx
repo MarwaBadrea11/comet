@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users, Crown } from 'lucide-react'
+import { Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users, Crown, LogOut, UserMinus, UserPlus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Input } from '../ui/Input'
 import { toast } from '../ui/Toast'
-import { useConversations, useMessages, useSendMessage, useCreateConversation, useMarkAsRead } from '../../hooks/useMessagesQuery'
+import { useConversations, useMessages, useSendMessage, useCreateConversation, useMarkAsRead, useLeaveConversation, useRemoveParticipant, useAddParticipant } from '../../hooks/useMessagesQuery'
 import { useMyFriends } from '../../hooks/useFriendsQuery'
 import { useUploadMedia } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../stores/authStore'
@@ -48,9 +48,54 @@ function MessageBubble({ message, isMe, showAvatar }: { message: MessageItem; is
   )
 }
 
-function GroupInfoModal({ conversation, onClose }: { conversation: Conversation; onClose: () => void }) {
+function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conversation; onClose: () => void; onLeft: () => void }) {
   const currentUser = useAuthStore(s => s.user)
-  
+  const currentUserIsAdmin = conversation.myParticipantRole === 'ADMIN'
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  const [showAddMember, setShowAddMember] = useState(false)
+
+  const leaveConversation = useLeaveConversation()
+  const removeParticipant = useRemoveParticipant()
+  const addParticipant = useAddParticipant()
+  const { data: friends = [] } = useMyFriends()
+
+  const memberIds = new Set((conversation.participants ?? []).map(p => String(p.user.id)))
+  const addableFriends = friends.filter(f => !memberIds.has(String(f.id)))
+
+  const handleAdd = (userId: string) => {
+    addParticipant.mutate(
+      { conversationId: conversation.id, userId },
+      {
+        onSuccess: () => toast.success('Member added'),
+        onError: () => toast.error('Failed to add member. Please try again.'),
+      },
+    )
+  }
+
+  const handleLeave = () => {
+    leaveConversation.mutate(conversation.id, {
+      onSuccess: () => {
+        toast.success('You left the group')
+        onLeft()
+      },
+      onError: () => toast.error('Failed to leave group. Please try again.'),
+    })
+  }
+
+  const handleRemove = (userId: string) => {
+    removeParticipant.mutate(
+      { conversationId: conversation.id, userId },
+      {
+        onSuccess: () => {
+          toast.success('Member removed')
+          setConfirmRemoveId(null)
+        },
+        onError: () => toast.error('Failed to remove member. Please try again.'),
+      },
+    )
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -65,7 +110,7 @@ function GroupInfoModal({ conversation, onClose }: { conversation: Conversation;
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[85vh]"
+          className="bg-surface-container-lowest w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[85vh]"
         >
           {/* Header */}
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 shrink-0">
@@ -110,9 +155,45 @@ function GroupInfoModal({ conversation, onClose }: { conversation: Conversation;
 
             {/* Members List */}
             <div className="px-6 py-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">
-                Members
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  Members
+                </h4>
+                {currentUserIsAdmin && (
+                  <button
+                    onClick={() => setShowAddMember(v => !v)}
+                    className={`flex items-center gap-1 text-xs font-bold transition-colors ${showAddMember ? 'text-error' : 'text-primary'}`}
+                  >
+                    {showAddMember ? <X size={13} /> : <UserPlus size={13} />}
+                    {showAddMember ? 'Close' : 'Add'}
+                  </button>
+                )}
+              </div>
+
+              {showAddMember && (
+                <div className="mb-4 p-3 bg-surface-container-low rounded-2xl max-h-52 overflow-y-auto space-y-1">
+                  {addableFriends.length === 0 ? (
+                    <p className="text-xs text-on-surface-variant text-center py-4">
+                      All your friends are already in this group.
+                    </p>
+                  ) : (
+                    addableFriends.map((f) => (
+                      <div key={f.id} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-surface-container transition-colors">
+                        <ParticipantAvatar name={f.name} avatarMediaId={(f as any).avatarMediaId} size="sm" />
+                        <span className="flex-1 min-w-0 text-sm font-semibold text-on-surface truncate">{f.name}</span>
+                        <button
+                          onClick={() => handleAdd(f.id)}
+                          disabled={addParticipant.isPending}
+                          className="text-xs font-bold text-primary px-2.5 py-1 rounded-lg hover:bg-primary/10 disabled:opacity-50 shrink-0"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
                 {conversation.participants?.map((participant) => {
                   const isCurrentUser = String(participant.user.id) === String(currentUser?.id)
@@ -144,11 +225,39 @@ function GroupInfoModal({ conversation, onClose }: { conversation: Conversation;
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 shrink-0">
                         {isAdmin && (
                           <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
                             Admin
                           </span>
+                        )}
+                        {/* Admins can remove any other member — backend rejects self-removal via this route (use Leave instead). */}
+                        {currentUserIsAdmin && !isCurrentUser && (
+                          confirmRemoveId === participant.user.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleRemove(participant.user.id)}
+                                disabled={removeParticipant.isPending}
+                                className="text-[10px] font-bold text-white bg-error px-2 py-1 rounded-lg hover:opacity-90 disabled:opacity-50"
+                              >
+                                {removeParticipant.isPending ? '…' : 'Confirm'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmRemoveId(null)}
+                                className="text-[10px] font-bold text-on-surface-variant px-1.5"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmRemoveId(participant.user.id)}
+                              className="p-1.5 rounded-full text-on-surface-variant/50 hover:text-error hover:bg-error/10 transition-colors"
+                              aria-label="Remove member"
+                            >
+                              <UserMinus size={15} />
+                            </button>
+                          )
                         )}
                       </div>
                     </div>
@@ -156,6 +265,36 @@ function GroupInfoModal({ conversation, onClose }: { conversation: Conversation;
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Footer — Leave Group */}
+          <div className="p-6 border-t border-outline-variant/10 shrink-0">
+            {confirmLeave ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleLeave}
+                  disabled={leaveConversation.isPending}
+                  className="flex-1 h-11 rounded-xl bg-error text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {leaveConversation.isPending ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                  Confirm Leave
+                </button>
+                <button
+                  onClick={() => setConfirmLeave(false)}
+                  className="h-11 px-4 rounded-xl text-on-surface-variant font-bold hover:bg-surface-container-low transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmLeave(true)}
+                className="w-full h-11 rounded-xl border border-error/30 text-error font-bold flex items-center justify-center gap-2 hover:bg-error/5 transition-colors"
+              >
+                <LogOut size={16} />
+                Leave Group
+              </button>
+            )}
           </div>
         </motion.div>
       </div>
@@ -193,7 +332,7 @@ function NewConversationModal({ onClose }: { onClose: () => void }) {
     <>
       <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-sm rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[80vh]">
+        <div className="bg-surface-container-lowest w-full max-w-sm rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[80vh]">
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10">
             <h2 className="font-headline text-lg font-bold text-on-surface">New Message</h2>
             <button onClick={onClose} className="p-1 hover:bg-surface rounded-full"><X size={18} /></button>
@@ -441,7 +580,7 @@ export function MessagesScreen() {
         ) : (
           <>
             {/* Header */}
-            <header className="h-14 lg:h-16 flex items-center justify-between px-4 lg:px-8 bg-white/70 backdrop-blur-2xl z-10 border-b border-outline-variant/10 shrink-0">
+            <header className="h-14 lg:h-16 flex items-center justify-between px-4 lg:px-8 bg-surface-container-lowest/70 backdrop-blur-2xl z-10 border-b border-outline-variant/10 shrink-0">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button onClick={() => setShowChat(false)} className="sm:hidden p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors mr-1">
                   <ArrowLeft size={20} />
@@ -559,6 +698,11 @@ export function MessagesScreen() {
         <GroupInfoModal
           conversation={activeConv}
           onClose={() => setShowGroupInfo(false)}
+          onLeft={() => {
+            setShowGroupInfo(false)
+            setActiveConvId(null)
+            setShowChat(false)
+          }}
         />
       )}
     </div>

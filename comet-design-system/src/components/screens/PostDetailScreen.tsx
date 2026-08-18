@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Loader2, Send, Trash2, CornerDownRight, Edit } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Share2, Bookmark, MoreHorizontal, ThumbsUp, Loader2, Send, Trash2, CornerDownRight, Edit } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { Button } from '../ui/Button'
+import { ReactionButton } from '../ui/ReactionButton'
+import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
-import { usePost, useReactToPost } from '../../hooks/usePostsQuery'
+import { usePost, useReactToPost, useSavePost, useUnsavePost, useSavedPosts } from '../../hooks/usePostsQuery'
 import { usePostComments, useCreateComment } from '../../hooks/useCommentsQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { EditPostModal } from './EditPostModal'
+import type { ReactionType } from '../../types'
 
 // Comment authors only carry avatarMediaId (no nested avatarMedia object) —
 // resolve the real URL per item so map() stays rules-of-hooks safe.
@@ -26,9 +29,8 @@ export function PostDetailScreen() {
   const { data: profile } = useMe()
 
   const [newComment, setNewComment] = useState('')
-  const [showMenu, setShowMenu] = useState(false) 
-  const [isSaved, setIsSaved] = useState(false)   
-  
+  const [showMenu, setShowMenu] = useState(false)
+
   // حالات التحكم بالردود محلياً
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
@@ -54,6 +56,9 @@ export function PostDetailScreen() {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const reactToPost    = useReactToPost()
   const createComment  = useCreateComment()
+  const savePost       = useSavePost()
+  const unsavePost     = useUnsavePost()
+  const { data: savedPosts = [] } = useSavedPosts()
 
   // 2. البحث عن المنشور محلياً أولاً، وإذا لم يوجد نعتمد على داتا السيرفر
   const localPost = allLocalPosts.find((p: any) => String(p.id) === String(id))
@@ -65,30 +70,54 @@ export function PostDetailScreen() {
     : serverComments
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const isLiked = post?.reactions?.some((r: any) => r.userId === user?.id) ?? false
   const isOwnPost = post?.user?.name === user?.name || post?.userId === user?.id
+  const isSaved = !!post && savedPosts.some(p => String(p.id) === String(post.id))
 
-  // 🛠️ دالة الـ Like للبوست
-  const handleLike = () => {
+  // 🛠️ دالة التفاعل مع البوست (7 أنواع تفاعل مدعومة من الباك)
+  const handleReact = (reactionType: ReactionType) => {
     if (!post || !user?.id) return
 
     setAllLocalPosts(prev => prev.map(p => {
       if (String(p.id) === String(post.id)) {
-        const alreadyLiked = p.reactions?.some((r: any) => r.userId === user.id)
-        const updatedReactions = alreadyLiked
-          ? (p.reactions || []).filter((r: any) => r.userId !== user.id)
-          : [...(p.reactions || []), { id: `local-react-${Date.now()}`, userId: user.id }]
+        const existing = p.reactions?.find((r: any) => r.userId === user.id)
+        let updatedReactions
+        if (existing && existing.reactionType === reactionType) {
+          updatedReactions = (p.reactions || []).filter((r: any) => r.userId !== user.id)
+        } else if (existing) {
+          updatedReactions = p.reactions.map((r: any) => r.userId === user.id ? { ...r, reactionType } : r)
+        } else {
+          updatedReactions = [...(p.reactions || []), { id: `local-react-${Date.now()}`, userId: user.id, reactionType }]
+        }
         return { ...p, reactions: updatedReactions }
       }
       return p
     }))
 
-    reactToPost.mutate({ 
-      postId: String(post.id), 
+    reactToPost.mutate({
+      postId: String(post.id),
       userId: user.id,
       reactableType: 'POST',
-      reactionType: 'LIKE'
+      reactionType,
     })
+  }
+
+  // 🛠️ دالة حفظ/إلغاء حفظ البوست (متصلة فعلياً بالباك)
+  const handleToggleSave = () => {
+    if (!post) return
+    if (isSaved) {
+      unsavePost.mutate(String(post.id), {
+        onSuccess: () => toast.success('Removed from saved'),
+        onError: () => toast.error('Failed to unsave post'),
+      })
+    } else {
+      savePost.mutate(String(post.id), {
+        onSuccess: () => toast.success('Post saved!'),
+        onError: (err: any) => {
+          if (err.response?.status === 409) toast.warning('Post already saved')
+          else toast.error('Failed to save post')
+        },
+      })
+    }
   }
 
   // 🛠️ دالة اللايك للتعليق محلياً
@@ -278,7 +307,7 @@ export function PostDetailScreen() {
                       initial={{ opacity: 0, scale: 0.95, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      className="absolute right-0 mt-2 w-48 bg-white border border-outline-variant/20 rounded-2xl shadow-xl p-2 z-50"
+                      className="absolute right-0 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl p-2 z-50"
                     >
                       {isOwnPost ? (
                         <>
@@ -323,23 +352,34 @@ export function PostDetailScreen() {
 
           {/* Actions */}
           <div className="flex items-center gap-4 md:gap-8 py-4 md:py-6 border-t border-surface-container-low">
+            <ReactionButton
+              reactions={post.reactions}
+              userId={user?.id}
+              onReact={handleReact}
+              className="flex items-center gap-2 group cursor-pointer transition-colors text-on-surface-variant hover:text-primary"
+            />
+
             {[
-              { icon: <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />, label: String(post.reactions?.length ?? 0), active: isLiked, action: handleLike },
-              { icon: <MessageCircle size={20} />, label: String(comments?.length ?? 0), active: false, action: () => {} },
-              { icon: <Share2 size={20} />, label: 'Share', active: false, action: handleShare },
+              { icon: <MessageCircle size={20} />, label: String(comments?.length ?? 0), action: () => {} },
+              { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
             ].map((a, i) => (
-              <button key={i} onClick={a.action} className={`flex items-center gap-2 group cursor-pointer transition-colors ${a.active ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}>
+              <button key={i} onClick={a.action} className="flex items-center gap-2 group cursor-pointer transition-colors text-on-surface-variant hover:text-primary">
                 <div className="h-9 w-9 md:h-10 md:w-10 flex items-center justify-center rounded-full bg-surface-container-low group-hover:bg-primary/10 transition-colors">{a.icon}</div>
                 <span className="font-bold text-on-surface text-sm">{a.label}</span>
               </button>
             ))}
-            
+
             <div className="ml-auto">
-              <Button 
-                variant={isSaved ? 'primary' : 'secondary'} 
-                size="sm" 
-                onClick={() => setIsSaved(!isSaved)}
-                icon={<Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />}
+              <Button
+                variant={isSaved ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={handleToggleSave}
+                disabled={savePost.isPending || unsavePost.isPending}
+                icon={
+                  savePost.isPending || unsavePost.isPending
+                    ? <Loader2 size={16} className="animate-spin" />
+                    : <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />
+                }
               >
                 {isSaved ? 'Saved' : 'Save'}
               </Button>

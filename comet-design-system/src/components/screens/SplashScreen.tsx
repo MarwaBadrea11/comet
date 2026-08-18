@@ -21,9 +21,7 @@ export function SplashScreen() {
             <img src={logoImg} alt="Comet logo" className="w-full h-full object-contain" />
           </div>
         </div>
-        <div className="flex items-center gap-10">
-          <a className="text-sm font-label font-semibold tracking-widest text-on-surface-variant hover:text-primary transition-colors uppercase" href="#">Explore</a>
-          <a className="text-sm font-label font-semibold tracking-widest text-on-surface-variant hover:text-primary transition-colors uppercase" href="#">Curations</a>
+        <div className="flex items-center">
           <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>Sign In</Button>
         </div>
       </nav>
@@ -66,11 +64,6 @@ export function SplashScreen() {
 
         {/* Main content */}
         <motion.div {...motionVariants.slideUp} className="text-center relative z-10 max-w-4xl mx-auto">
-          <div className="mb-12 inline-flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-full border border-outline/5">
-            <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-            <span className="text-[10px] font-label font-bold tracking-[0.2em] text-primary uppercase">The New Standard for Curators</span>
-          </div>
-
           <h1 className="font-headline text-[3.5rem] md:text-[5.5rem] font-extrabold leading-none tracking-[-0.04em] mb-0">
             Connect. Create.<br />
             <img src={logoImg} alt="Comet logo" className="inline-block object-contain -mt-24" style={{ height: '4em', width: 'auto' }} />
@@ -98,18 +91,7 @@ export function SplashScreen() {
       </main>
 
       {/* Footer */}
-      <footer className="px-12 py-8 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-outline/5 bg-white/30 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-error relative">
-            <span className="absolute inset-0 rounded-full bg-error animate-ping" />
-          </span>
-          <span className="text-xs font-bold text-on-surface">Modern Minimalism Summit — Live</span>
-        </div>
-        <div className="flex items-center gap-8 text-xs font-label font-bold text-on-surface-variant/70 tracking-widest uppercase">
-          {['Terms', 'Privacy', 'Twitter', 'Instagram'].map(l => (
-            <a key={l} className="hover:text-primary transition-colors" href="#">{l}</a>
-          ))}
-        </div>
+      <footer className="px-12 py-8 border-t border-outline/5 bg-white/30 backdrop-blur-sm">
       </footer>
     </div>
   )

@@ -1,18 +1,16 @@
 import { useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Camera, Loader2, Users, FileText } from 'lucide-react'
+import { Camera, Loader2, Users, FileText, Bookmark, X } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
 import { UserActions } from '../ui/UserActions'
 import { FriendsListModal } from '../ui/FriendsListModal'
 import { toast } from '../ui/Toast'
 import { useMe, useUpdateProfile, useUserById } from '../../hooks/useUserQuery'
-import { usePostsByUsername } from '../../hooks/usePostsQuery'
+import { usePostsByUsername, useSavedPosts, useUnsavePost } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { mediaService } from '../../services/media'
-
-const TABS = ['Portfolio']
 
 export function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>()
@@ -28,12 +26,19 @@ export function ProfileScreen() {
   const isOwnProfile = !userId || userId === currentUser?.id
   const { data: myProfile, isLoading: loadingMe } = useMe({ enabled: isOwnProfile })
   const { data: otherProfile, isLoading: loadingOther } = useUserById(userId ?? '', { enabled: !isOwnProfile })
-  
+
   const profile = isOwnProfile ? myProfile : otherProfile
   const isLoading = isOwnProfile ? loadingMe : loadingOther
-  
+
   const { data: posts = [], isLoading: loadingPosts } = usePostsByUsername(profile?.username ?? '')
+  // Saved posts are private — only ever fetched/shown on your own profile.
+  const { data: savedPosts = [], isLoading: loadingSaved } = useSavedPosts(1, 20)
+  const unsavePost = useUnsavePost()
   const updateProfile = useUpdateProfile()
+
+  const TABS = isOwnProfile ? ['Portfolio', 'Saved'] : ['Portfolio']
+  const galleryPosts = tab === 'Saved' ? savedPosts : posts
+  const loadingGallery = tab === 'Saved' ? loadingSaved : loadingPosts
 
   const displayName = profile?.name ?? currentUser?.name ?? 'Comet User'
   const avatarSrc   = profile?.avatar
@@ -189,16 +194,24 @@ export function ProfileScreen() {
               </div>
             </div>
 
-            {loadingPosts ? (
+            {loadingGallery ? (
               <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
-            ) : posts.length === 0 ? (
+            ) : galleryPosts.length === 0 ? (
               <div className="text-center py-16 bg-surface-container-low rounded-3xl border-2 border-dashed border-outline-variant/20">
-                <p className="text-on-surface-variant text-sm font-medium">No posts yet. Start sharing!</p>
+                <p className="text-on-surface-variant text-sm font-medium">
+                  {tab === 'Saved' ? 'No saved posts yet. Bookmark posts to find them here.' : 'No posts yet. Start sharing!'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
-                {posts.map(post => (
-                  <motion.div key={post.id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }} className="group relative rounded-[2rem] overflow-hidden aspect-square bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 cursor-pointer">
+                {galleryPosts.map(post => (
+                  <motion.div
+                    key={post.id}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.3 }}
+                    onClick={() => navigate(`/post/${post.id}`)}
+                    className="group relative rounded-[2rem] overflow-hidden aspect-square bg-gradient-to-br from-primary/20 to-[#00D4FF]/10 cursor-pointer"
+                  >
                     {post.media?.[0] ? (
                       <img src={post.media[0].url} alt={post.content ?? ''} className="w-full h-full object-cover" />
                     ) : (
@@ -209,6 +222,26 @@ export function ProfileScreen() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 p-4 flex flex-col justify-end">
                       <p className="text-white text-xs font-bold line-clamp-2">{post.content}</p>
                     </div>
+                    {tab === 'Saved' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          unsavePost.mutate(String(post.id), {
+                            onSuccess: () => toast.success('Removed from saved'),
+                            onError: () => toast.error('Failed to unsave post'),
+                          })
+                        }}
+                        className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-error transition-all"
+                        aria-label="Unsave post"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    {tab === 'Saved' && (
+                      <div className="absolute top-3 left-3 p-1.5 rounded-full bg-black/50 text-white">
+                        <Bookmark size={12} fill="currentColor" />
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>

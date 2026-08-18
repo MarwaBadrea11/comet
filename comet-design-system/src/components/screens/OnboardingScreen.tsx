@@ -28,8 +28,66 @@ export function OnboardingScreen() {
           <img src={logoImg} alt="Comet logo" className="h-[120px] w-[120px] object-contain" />
         </div>
         <div className="relative z-10 w-full max-w-lg aspect-square p-16">
-          <div className="w-full h-full rounded-[3rem] bg-gradient-to-br from-primary/20 to-[#00D4FF]/20 shadow-[0_20px_40px_rgba(107,70,192,0.1)] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[8rem] text-primary/30">public</span>
+          <div className="w-full h-full rounded-[3rem] bg-gradient-to-br from-primary/20 to-[#00D4FF]/20 shadow-[0_20px_40px_rgba(107,70,192,0.1)] flex items-center justify-center relative overflow-hidden">
+            {/* Network Map SVG Graphic */}
+            <svg
+              viewBox="0 0 400 400"
+              className="w-full h-full opacity-30"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Connection lines */}
+              <g stroke="currentColor" strokeWidth="1.5" fill="none" className="text-primary" opacity="0.4">
+                {/* Lines from center to outer nodes */}
+                <line x1="200" y1="200" x2="200" y2="80" />
+                <line x1="200" y1="200" x2="320" y2="140" />
+                <line x1="200" y1="200" x2="340" y2="240" />
+                <line x1="200" y1="200" x2="300" y2="320" />
+                <line x1="200" y1="200" x2="180" y2="340" />
+                <line x1="200" y1="200" x2="80" y2="300" />
+                <line x1="200" y1="200" x2="60" y2="200" />
+                <line x1="200" y1="200" x2="100" y2="120" />
+                
+                {/* Secondary connections between outer nodes */}
+                <line x1="200" y1="80" x2="320" y2="140" opacity="0.3" />
+                <line x1="320" y1="140" x2="340" y2="240" opacity="0.3" />
+                <line x1="340" y1="240" x2="300" y2="320" opacity="0.3" />
+                <line x1="100" y1="120" x2="60" y2="200" opacity="0.3" />
+                <line x1="60" y1="200" x2="80" y2="300" opacity="0.3" />
+              </g>
+
+              {/* Outer nodes */}
+              <g className="text-primary">
+                <circle cx="200" cy="80" r="8" fill="currentColor" opacity="0.6" />
+                <circle cx="320" cy="140" r="7" fill="currentColor" opacity="0.5" />
+                <circle cx="340" cy="240" r="6" fill="currentColor" opacity="0.5" />
+                <circle cx="300" cy="320" r="7" fill="currentColor" opacity="0.6" />
+                <circle cx="180" cy="340" r="8" fill="currentColor" opacity="0.6" />
+                <circle cx="80" cy="300" r="6" fill="currentColor" opacity="0.5" />
+                <circle cx="60" cy="200" r="7" fill="currentColor" opacity="0.5" />
+                <circle cx="100" cy="120" r="7" fill="currentColor" opacity="0.6" />
+              </g>
+
+              {/* Central globe node */}
+              <g className="text-primary">
+                {/* Outer ring */}
+                <circle cx="200" cy="200" r="45" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.6" />
+                
+                {/* Globe meridians and parallels */}
+                <ellipse cx="200" cy="200" rx="45" ry="25" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                <ellipse cx="200" cy="200" rx="25" ry="45" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                <line x1="155" y1="200" x2="245" y2="200" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                
+                {/* Central dot */}
+                <circle cx="200" cy="200" r="35" fill="currentColor" opacity="0.15" />
+                <circle cx="200" cy="200" r="12" fill="currentColor" opacity="0.7" />
+              </g>
+
+              {/* Animated pulse effect */}
+              <circle cx="200" cy="200" r="40" fill="none" stroke="currentColor" strokeWidth="1" className="text-primary" opacity="0.3">
+                <animate attributeName="r" values="40;55;40" dur="3s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.3;0;0.3" dur="3s" repeatCount="indefinite" />
+              </circle>
+            </svg>
           </div>
           {/* Floating card */}
           <motion.div

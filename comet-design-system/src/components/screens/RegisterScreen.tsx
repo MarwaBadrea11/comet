@@ -167,28 +167,13 @@ export function RegisterScreen() {
               </button>
             </form>
 
-            <p className="text-center text-[11px] text-on-surface-variant/60 leading-relaxed px-2">
-              By creating an account you agree to our{' '}
-              <a href="#" className="text-primary hover:underline">Terms of Service</a>
-              {' '}and{' '}
-              <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
-            </p>
-
-            <p className="text-center text-[0.875rem] text-on-surface-variant -mt-1">
+            <p className="text-center text-[0.875rem] text-on-surface-variant">
               Already have an account?{' '}
               <a href="/login" className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all">
                 Sign In
               </a>
             </p>
           </div>
-        </div>
-
-        <div className="mt-6 mb-2 flex justify-center gap-6">
-          {['Privacy Policy', 'Support', 'Terms'].map(l => (
-            <a key={l} href="#" className="text-[10px] font-label font-semibold tracking-widest uppercase text-on-surface-variant/50 hover:text-primary transition-colors">
-              {l}
-            </a>
-          ))}
         </div>
       </motion.div>
     </div>

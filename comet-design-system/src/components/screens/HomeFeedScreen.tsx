@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, MoreHorizontal, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2, Edit } from 'lucide-react'
+import { MessageCircle, MoreHorizontal, Image, Smile, Send, CornerDownRight, ChevronDown, Bookmark, EyeOff, Share2, Edit } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { DropdownMenu } from '../ui/DropdownMenu'
 import { StoriesTray } from '../ui/StoriesTray'
+import { ReactionButton } from '../ui/ReactionButton'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from '../../hooks/usePostsQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
+import type { ReactionType } from '../../types'
 
 import { CreateStoryModal } from './CreateStoryModal'
 import { CreatePostModal } from './CreatePostModal'
@@ -152,19 +154,26 @@ export function HomeFeedScreen() {
     setShowEmojiPicker(false)
   }
 
-  const handleReact = (postId: string) => {
+  const handleReact = (postId: string, reactionType: ReactionType) => {
     if (!user?.id) return
     setAllLocalPosts(prev => prev.map(post => {
       if (String(post.id) === postId) {
-        const hasReacted = post.reactions?.some((r: any) => r.userId === user.id)
-        const updatedReactions = hasReacted
-          ? post.reactions.filter((r: any) => r.userId !== user.id)
-          : [...(post.reactions || []), { id: `react-${Date.now()}`, userId: user.id }]
+        const existing = post.reactions?.find((r: any) => r.userId === user.id)
+        let updatedReactions
+        if (existing && existing.reactionType === reactionType) {
+          // Same reaction tapped again → toggle off
+          updatedReactions = post.reactions.filter((r: any) => r.userId !== user.id)
+        } else if (existing) {
+          // Different reaction picked → swap type
+          updatedReactions = post.reactions.map((r: any) => r.userId === user.id ? { ...r, reactionType } : r)
+        } else {
+          updatedReactions = [...(post.reactions || []), { id: `react-${Date.now()}`, userId: user.id, reactionType }]
+        }
         return { ...post, reactions: updatedReactions }
       }
       return post
     }))
-    reactToPost.mutate({ postId: String(postId), userId: user.id, reactableType: 'POST', reactionType: 'LIKE' })
+    reactToPost.mutate({ postId: String(postId), userId: user.id, reactableType: 'POST', reactionType })
   }
 
   const handleSavePost = (postId: string) => {
@@ -232,7 +241,7 @@ export function HomeFeedScreen() {
   const myAvatarSrc = userAvatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] py-4 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12 overflow-x-hidden select-none">
+    <div className="min-h-screen bg-surface py-4 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12 overflow-x-hidden select-none">
       <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 lg:gap-12 items-start">
 
         {/* ── Main column ── */}
@@ -242,7 +251,7 @@ export function HomeFeedScreen() {
           <StoriesTray onCreateStory={() => setIsStoryModalOpen(true)} />
 
           {/* ── Create Post Box ── */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] p-4 md:p-6 border border-white/60 shadow-sm">
+          <div className="bg-surface-container-lowest/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] p-4 md:p-6 border border-outline-variant/15 shadow-sm">
             <form onSubmit={handleCreatePost} className="space-y-4">
               <div className="flex gap-3 md:gap-4 items-start">
                 <Avatar src={myAvatarSrc} alt="Me" size="sm" className="md:w-12 md:h-12" />
@@ -286,7 +295,7 @@ export function HomeFeedScreen() {
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute bottom-full left-0 mb-3 p-2 bg-white/95 backdrop-blur-md border border-outline-variant/20 rounded-2xl shadow-xl z-50 grid grid-cols-4 gap-1.5 w-44"
+                            className="absolute bottom-full left-0 mb-3 p-2 bg-surface-container-lowest/95 backdrop-blur-md border border-outline-variant/20 rounded-2xl shadow-xl z-50 grid grid-cols-4 gap-1.5 w-44"
                           >
                             {COSMIC_EMOJIS.map(emoji => (
                               <button
@@ -321,7 +330,7 @@ export function HomeFeedScreen() {
 
           {/* ── Error State ── */}
           {isError && posts.length === 0 && (
-            <div className="text-center py-16 space-y-4 bg-white rounded-2xl border border-outline-variant/10">
+            <div className="text-center py-16 space-y-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10">
               <p className="text-sm text-on-surface-variant font-medium">
                 {(error as any)?.response?.data?.message ?? 'Failed to load your feed.'}
               </p>
@@ -331,7 +340,7 @@ export function HomeFeedScreen() {
 
           {/* ── Empty State ── */}
           {!isLoading && !isError && posts.length === 0 && (
-            <div className="text-center py-16 space-y-2 bg-white rounded-2xl border border-outline-variant/10">
+            <div className="text-center py-16 space-y-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/10">
               <p className="text-sm text-on-surface-variant font-medium">No posts yet. Be the first to share something!</p>
             </div>
           )}
@@ -340,12 +349,11 @@ export function HomeFeedScreen() {
           {posts.length > 0 && (
             <div className="space-y-4 md:space-y-6">
               {posts.map(post => {
-                const isLiked = post.reactions?.some((r: any) => r.userId === user?.id)
                 const isCommentSectionOpen = activeCommentPostId === String(post.id)
                 const comments = post.comments || []
 
                 return (
-                  <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)]">
+                  <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-surface-container-lowest rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)]">
                     <div className="p-4 md:p-6 flex justify-between items-center">
                       <div className="flex gap-3 md:gap-4 items-center cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
                         <img 
@@ -419,10 +427,11 @@ export function HomeFeedScreen() {
 
                     <div className="p-2 md:p-3 px-4 md:px-6 flex justify-between items-center border-t border-outline-variant/5 text-[11px] font-bold text-on-surface-variant/80">
                       <div className="flex gap-1 md:gap-2 items-center">
-                        <button onClick={() => handleReact(String(post.id))} className={`flex items-center gap-1.5 p-2 hover:bg-surface rounded-xl transition-all active:scale-95 group ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}>
-                          <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
-                          <span>{post.reactions?.length ?? 0}</span>
-                        </button>
+                        <ReactionButton
+                          reactions={post.reactions}
+                          userId={user?.id}
+                          onReact={(type) => handleReact(String(post.id), type)}
+                        />
                         <button onClick={() => setActiveCommentPostId(isCommentSectionOpen ? null : String(post.id))} className={`flex items-center gap-1.5 p-2 hover:bg-surface hover:text-primary rounded-xl transition-all active:scale-95 ${isCommentSectionOpen ? 'text-primary' : ''}`}>
                           <MessageCircle size={18} />
                           <span>{comments.length}</span>
@@ -433,7 +442,7 @@ export function HomeFeedScreen() {
                     {/* ── Comments Section ── */}
                     <AnimatePresence>
                       {isCommentSectionOpen && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-outline-variant/10 bg-slate-50/50 p-4 space-y-4">
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-outline-variant/10 bg-surface-container-low/50 p-4 space-y-4">
                           <div className="space-y-4 max-h-[320px] overflow-y-auto no-scrollbar">
                             {comments.map((comment: any) => {
                               const hasReplies = comment.replies && comment.replies.length > 0
@@ -451,7 +460,7 @@ export function HomeFeedScreen() {
                                       className="w-7 h-7" 
                                     />
                                     <div className="flex-1">
-                                      <div className="bg-white p-2.5 rounded-xl border border-outline-variant/10 shadow-sm inline-block max-w-[95%]">
+                                      <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/10 shadow-sm inline-block max-w-[95%]">
                                         <span className="font-bold text-on-surface block mb-0.5">{comment.user?.name}</span>
                                         <p className="text-on-surface-variant leading-relaxed">{comment.content}</p>
                                       </div>
@@ -478,7 +487,7 @@ export function HomeFeedScreen() {
                                               size="sm" 
                                               className="h-5 w-5 rounded-lg shrink-0" 
                                             />
-                                            <div className="flex-1 bg-white/70 p-2 rounded-xl border border-outline-variant/5 shadow-sm">
+                                            <div className="flex-1 bg-surface-container-lowest/70 p-2 rounded-xl border border-outline-variant/5 shadow-sm">
                                               <span className="font-bold text-on-surface block mb-0.5">{reply.user?.name}</span>
                                               <p className="text-on-surface-variant">{reply.content}</p>
                                             </div>
@@ -492,7 +501,7 @@ export function HomeFeedScreen() {
                             })}
                           </div>
                           <form onSubmit={(e) => handleAddComment(e, String(post.id))} className="flex gap-2 items-center pt-2 border-t border-outline-variant/5">
-                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a cosmic comment..." className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 h-9 text-xs focus:outline-none focus:border-primary shadow-sm" />
+                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a cosmic comment..." className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 h-9 text-xs focus:outline-none focus:border-primary shadow-sm" />
                             <button type="submit" disabled={!commentText.trim()} className="p-2 bg-primary text-white rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"><Send size={14} /></button>
                           </form>
                         </motion.div>

@@ -70,14 +70,9 @@ export function LoginScreen() {
               />
 
               <div className="space-y-1">
-                <div className="flex justify-between items-center px-1">
-                  <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
-                    Password
-                  </label>
-                  <button type="button" className="text-[11px] font-semibold text-primary hover:opacity-75 transition-opacity">
-                    Forgot password?
-                  </button>
-                </div>
+                <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant px-1 block">
+                  Password
+                </label>
                 <Input
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
@@ -143,14 +138,6 @@ export function LoginScreen() {
               </a>
             </p>
           </div>
-        </div>
-
-        <div className="mt-5 sm:mt-7 mb-2 flex justify-center gap-6">
-          {['Privacy Policy', 'Support', 'Terms'].map(l => (
-            <a key={l} href="#" className="text-[10px] font-label font-semibold tracking-widest uppercase text-on-surface-variant/50 hover:text-primary transition-colors">
-              {l}
-            </a>
-          ))}
         </div>
       </motion.div>
     </div>

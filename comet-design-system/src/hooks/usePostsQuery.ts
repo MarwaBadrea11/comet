@@ -226,8 +226,37 @@ export function useReactToPost() {
 // ── Save post ─────────────────────────────────────────────────────────────────
 
 export function useSavePost() {
+  const qc = useQueryClient()
+
   return useMutation({
     mutationFn: (postId: string) => postsService.savePost(postId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.posts.saved(1, 20) })
+    },
+  })
+}
+
+export function useUnsavePost() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (postId: string) => postsService.unsavePost(postId),
+    onSuccess: (_, postId) => {
+      // Optimistically drop it from any cached saved-posts pages so the
+      // Profile "Saved" tab updates immediately without waiting on a refetch.
+      qc.setQueriesData<Post[]>(
+        { queryKey: queryKeys.posts.saved(1, 20), exact: false },
+        (old) => old?.filter((p) => String(p.id) !== String(postId)),
+      )
+      qc.invalidateQueries({ queryKey: queryKeys.posts.saved(1, 20) })
+    },
+  })
+}
+
+export function useSavedPosts(page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: queryKeys.posts.saved(page, pageSize),
+    queryFn: () => postsService.getSavedPosts(page, pageSize),
   })
 }
 
