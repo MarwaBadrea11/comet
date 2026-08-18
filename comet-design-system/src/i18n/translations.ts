@@ -29,6 +29,7 @@ export interface Translations {
     categories: {
       appearance: string
       account: string
+      privacy: string
     }
     appearance: {
       title: string
@@ -52,11 +53,14 @@ export interface Translations {
         sub: string
       }
     }
-    footer: {
-      version: string
-      terms: string
-      privacy: string
-      cookies: string
+    privacy: {
+      title: string
+      subtitle: string
+      blockedUsers: {
+        title: string
+        empty: string
+        unblock: string
+      }
     }
   }
 }
@@ -84,6 +88,7 @@ export const translations: Record<Language, Translations> = {
       categories: {
         appearance: 'Appearance',
         account: 'Account Center',
+        privacy: 'Privacy & Blocking',
       },
       appearance: {
         title: 'Appearance & Language',
@@ -107,11 +112,14 @@ export const translations: Record<Language, Translations> = {
           sub: 'Last updated 3 months ago',
         },
       },
-      footer: {
-        version: 'Version 4.2.0-Alpha • Made with stardust in the Digital Ether',
-        terms: 'Terms of Service',
-        privacy: 'Privacy Policy',
-        cookies: 'Cookie Policy',
+      privacy: {
+        title: 'Privacy & Blocking',
+        subtitle: 'Manage who can see your content and who you\'ve blocked',
+        blockedUsers: {
+          title: 'Blocked Users',
+          empty: 'You haven\'t blocked anyone.',
+          unblock: 'Unblock',
+        },
       },
     },
   },
@@ -137,6 +145,7 @@ export const translations: Record<Language, Translations> = {
       categories: {
         appearance: 'المظهر',
         account: 'مركز الحساب',
+        privacy: 'الخصوصية والحظر',
       },
       appearance: {
         title: 'المظهر واللغة',
@@ -160,11 +169,14 @@ export const translations: Record<Language, Translations> = {
           sub: 'آخر تحديث قبل 3 أشهر',
         },
       },
-      footer: {
-        version: 'الإصدار 4.2.0-ألفا • صُنع بغبار النجوم في الأثير الرقمي',
-        terms: 'شروط الخدمة',
-        privacy: 'سياسة الخصوصية',
-        cookies: 'سياسة ملفات تعريف الارتباط',
+      privacy: {
+        title: 'الخصوصية والحظر',
+        subtitle: 'إدارة من يمكنه رؤية محتواك ومن قمت بحظره',
+        blockedUsers: {
+          title: 'المستخدمون المحظورون',
+          empty: 'لم تقم بحظر أي أحد.',
+          unblock: 'إلغاء الحظر',
+        },
       },
     },
   },

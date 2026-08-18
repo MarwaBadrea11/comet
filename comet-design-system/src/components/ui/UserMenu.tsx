@@ -158,7 +158,7 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
               {/* Settings */}
               <MenuItem
                 icon={<Settings size={16} />}
-                label="Settings & Privacy"
+                label="Settings"
                 onClick={handleSettings}
               />
 
@@ -224,13 +224,6 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
                 </span>
                 <span className="text-sm font-semibold">Sign Out</span>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-2.5 border-t border-outline-variant/10 bg-surface-container-low/40">
-              <p className="text-[10px] text-on-surface-variant/50 font-label uppercase tracking-widest text-center">
-                Comet v4.2.0 · The Celestial Curator
-              </p>
             </div>
           </motion.div>
         )}

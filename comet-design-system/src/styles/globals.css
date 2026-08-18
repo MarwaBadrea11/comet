@@ -163,3 +163,25 @@ input::-ms-clear {
   display: none !important;
 }
 }
+
+/* ── Hide External Floating Widgets (Kiro IDE / Browser Extensions) ── */
+/* Hide any floating badges, widgets, or overlays injected by external tools */
+button[class*="floating"],
+div[class*="kiro-widget"],
+div[class*="floating-badge"],
+div[class*="kiro-badge"],
+[class*="floating-island"],
+[data-kiro-widget],
+iframe[class*="widget"],
+/* Target common floating widget patterns */
+button[style*="position: fixed"][style*="bottom"],
+div[style*="position: fixed"][style*="bottom"][style*="right"],
+/* Kiro-specific selectors if they exist */
+#kiro-floating-widget,
+.kiro-overlay,
+.kiro-dev-tools {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

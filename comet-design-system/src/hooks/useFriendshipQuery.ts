@@ -4,6 +4,14 @@ import { queryKeys } from '../lib/queryKeys'
 import { toast } from '../components/ui/Toast'
 import type { FriendRequest } from '../types'
 
+// Backend friendship errors are plain NestJS HttpExceptions
+// ({message, error, statusCode}) with a genuinely useful message (e.g.
+// "A friend request is already pending between these users") — show that
+// instead of a generic failure toast so users understand what happened.
+function friendshipErrorMessage(err: unknown, fallback: string): string {
+  return (err as any)?.response?.data?.message ?? fallback
+}
+
 // Requests the current user has SENT and are still pending. There is no
 // backend endpoint to list these (only incoming requests are queryable), so
 // we track them client-side for the lifetime of the session, seeded from
@@ -89,8 +97,8 @@ export function useSendFriendRequest() {
       qc.invalidateQueries({ queryKey: queryKeys.friendship.incoming() })
       toast.success('Friend request sent')
     },
-    onError: () => {
-      toast.error('Failed to send friend request')
+    onError: (err) => {
+      toast.error(friendshipErrorMessage(err, 'Failed to send friend request'))
     },
   })
 }
@@ -104,8 +112,8 @@ export function useApproveFriendRequest() {
       qc.invalidateQueries({ queryKey: queryKeys.friendship.friends() })
       toast.success('Friend request accepted')
     },
-    onError: () => {
-      toast.error('Failed to accept friend request')
+    onError: (err) => {
+      toast.error(friendshipErrorMessage(err, 'Failed to accept friend request'))
     },
   })
 }
@@ -122,8 +130,8 @@ export function useDeclineFriendRequest() {
       qc.invalidateQueries({ queryKey: queryKeys.friendship.incoming() })
       toast.success('Request removed')
     },
-    onError: () => {
-      toast.error('Failed to remove request')
+    onError: (err) => {
+      toast.error(friendshipErrorMessage(err, 'Failed to remove request'))
     },
   })
 }
@@ -136,8 +144,8 @@ export function useUnfriend() {
       qc.invalidateQueries({ queryKey: queryKeys.friendship.friends() })
       toast.success('Unfriended')
     },
-    onError: () => {
-      toast.error('Failed to unfriend')
+    onError: (err) => {
+      toast.error(friendshipErrorMessage(err, 'Failed to unfriend'))
     },
   })
 }

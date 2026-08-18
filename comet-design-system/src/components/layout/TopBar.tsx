@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Bell, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react'
+import { Bell, Menu } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
-import { Input } from '../ui/Input'
 import { UserMenu } from '../ui/UserMenu'
 import { useSidebar } from '../../providers/SidebarProvider'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -13,13 +12,11 @@ import { useMyProfile } from '../../hooks/useUserQuery'
 import { EXPANDED_W, COLLAPSED_W } from './SideNav'
 
 interface TopBarProps {
-  searchPlaceholder?: string
   notificationCount?: number
   className?: string
 }
 
 export function TopBar({
-  searchPlaceholder,
   notificationCount,
   className,
 }: TopBarProps) {
@@ -48,7 +45,6 @@ export function TopBar({
   const toggleMenu = useCallback(() => setMenuOpen(v => !v), [])
 
   const sidebarW = collapsed ? COLLAPSED_W : EXPANDED_W
-  const finalSearchPlaceholder = searchPlaceholder || t('header.searchPlaceholder')
 
   return (
     <motion.header
@@ -69,9 +65,9 @@ export function TopBar({
         className,
       )}
     >
-      <div className="h-full grid grid-cols-[auto_1fr_auto] items-center px-4 lg:px-6 gap-3">
+      <div className="h-full flex items-center justify-between px-4 lg:px-6 gap-3">
 
-        {/* Toggle — hamburger on mobile, panel icon on desktop */}
+        {/* Toggle — hamburger menu icon */}
         <motion.button
           onClick={isMobile ? toggleMobile : toggle}
           whileHover={{ scale: 1.08 }}
@@ -80,24 +76,8 @@ export function TopBar({
           aria-label="Toggle sidebar"
           className="p-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          {isMobile
-            ? <Menu size={22} />
-            : collapsed
-              ? <PanelLeftOpen  size={20} className={isRTL ? 'rotate-180' : ''} />
-              : <PanelLeftClose size={20} className={isRTL ? 'rotate-180' : ''} />
-          }
+          <Menu size={22} />
         </motion.button>
-
-        {/* Search — centered */}
-        <div className="flex justify-center">
-          <div className="w-full max-w-xs sm:max-w-sm md:max-w-md">
-            <Input
-              variant="search"
-              placeholder={finalSearchPlaceholder}
-              leadingIcon={<Search size={17} />}
-            />
-          </div>
-        </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">

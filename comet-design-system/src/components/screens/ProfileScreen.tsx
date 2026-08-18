@@ -5,6 +5,7 @@ import { Camera, Loader2, Users, FileText } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
 import { UserActions } from '../ui/UserActions'
+import { FriendsListModal } from '../ui/FriendsListModal'
 import { toast } from '../ui/Toast'
 import { useMe, useUpdateProfile, useUserById } from '../../hooks/useUserQuery'
 import { usePostsByUsername } from '../../hooks/usePostsQuery'
@@ -20,6 +21,7 @@ export function ProfileScreen() {
 
   const [tab, setTab]               = useState('Portfolio')
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [showFriendsList, setShowFriendsList] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   // ── Queries ────────────────────────────────────────────────────────────────
@@ -142,11 +144,22 @@ export function ProfileScreen() {
                 <span className="text-lg font-bold text-on-surface">{loadingPosts ? '…' : posts.length}</span>
                 <span className="text-sm text-on-surface-variant">Posts</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
-                <span className="text-sm text-on-surface-variant">Friends</span>
-              </div>
+              {isOwnProfile ? (
+                <button
+                  onClick={() => setShowFriendsList(true)}
+                  className="flex items-center gap-2 rounded-xl px-2 -mx-2 py-1 hover:bg-surface-container-low transition-colors"
+                >
+                  <Users className="w-5 h-5 text-primary" />
+                  <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
+                  <span className="text-sm text-on-surface-variant">Friends</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
+                  <span className="text-sm text-on-surface-variant">Friends</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="pb-0 md:pb-6 flex gap-3">
@@ -206,6 +219,8 @@ export function ProfileScreen() {
 
       <div className="fixed -bottom-32 -right-32 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="fixed top-1/2 -left-32 w-64 h-64 bg-[#00677e]/10 rounded-full blur-[80px] pointer-events-none" />
+
+      {showFriendsList && <FriendsListModal onClose={() => setShowFriendsList(false)} />}
     </div>
   )
 }

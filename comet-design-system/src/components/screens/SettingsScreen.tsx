@@ -3,6 +3,7 @@ import { ChevronRight, Sun, Moon, Globe } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
+import { BlockedUsersList } from '../ui/BlockedUsersList'
 
 export function SettingsScreen() {
   const t = useTranslation()
@@ -13,6 +14,7 @@ export function SettingsScreen() {
   const CATEGORIES = [
     { id: 'appearance', label: t.settings.categories.appearance, icon: 'palette' },
     { id: 'account', label: t.settings.categories.account, icon: 'person' },
+    { id: 'privacy', label: t.settings.categories.privacy, icon: 'block' },
   ]
 
   return (
@@ -154,27 +156,20 @@ export function SettingsScreen() {
             </section>
           )}
 
-          {/* Footer */}
-          <footer className="pt-8 flex flex-col items-center justify-center border-t border-outline-variant/10">
-            <div className="flex items-center gap-2 mb-4 opacity-30">
-              <span className="material-symbols-outlined text-2xl">orbit</span>
-              <span className="font-headline font-bold text-xl tracking-tight">Comet</span>
-            </div>
-            <p className="text-xs font-label text-on-surface-variant uppercase tracking-widest text-center">
-              {t.settings.footer.version}
-            </p>
-            <div className="flex gap-6 mt-6">
-              <a className="text-xs text-on-surface-variant hover:text-primary transition-colors" href="#">
-                {t.settings.footer.terms}
-              </a>
-              <a className="text-xs text-on-surface-variant hover:text-primary transition-colors" href="#">
-                {t.settings.footer.privacy}
-              </a>
-              <a className="text-xs text-on-surface-variant hover:text-primary transition-colors" href="#">
-                {t.settings.footer.cookies}
-              </a>
-            </div>
-          </footer>
+          {/* Privacy & Blocking */}
+          {activeCategory === 'privacy' && (
+            <section>
+              <div className="mb-6">
+                <h3 className="text-2xl font-headline font-bold text-on-surface">{t.settings.privacy.title}</h3>
+                <p className="text-sm text-on-surface-variant mt-1">{t.settings.privacy.subtitle}</p>
+              </div>
+
+              <div className="bg-surface-container-low rounded-[2rem] p-8">
+                <h4 className="font-headline font-bold text-on-surface mb-6">{t.settings.privacy.blockedUsers.title}</h4>
+                <BlockedUsersList />
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Heart, MessageCircle, UserPlus, AtSign, Star, MoreHorizontal, Loader2, Bell } from 'lucide-react'
+import { Heart, MessageCircle, UserPlus, AtSign, MoreHorizontal, Loader2, Bell } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
 import { motionVariants } from '../../lib/theme'
@@ -14,7 +14,7 @@ function getIcon(type?: string) {
     case 'comment': case 'reply': return <MessageCircle size={14} fill="currentColor" />
     case 'follow': case 'friend': return <UserPlus size={14} />
     case 'mention':               return <AtSign size={14} fill="currentColor" />
-    default:                      return <Star size={14} fill="currentColor" />
+    default:                      return <Bell size={14} />
   }
 }
 
@@ -153,11 +153,6 @@ export function NotificationsScreen() {
             </div>
           </section>
         )}
-
-        <div className="mt-16 md:mt-20 flex flex-col items-center opacity-30 pointer-events-none">
-          <span className="material-symbols-outlined text-5xl md:text-7xl text-primary mb-4">star</span>
-          <p className="text-xs font-label tracking-widest text-on-surface-variant uppercase">End of celestial log</p>
-        </div>
       </div>
     </div>
   )

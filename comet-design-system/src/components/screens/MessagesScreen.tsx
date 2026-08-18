@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users, Crown } from 'lucide-react'
+import { Phone, Video, Info, Send, Image, Mic, Plus, ArrowLeft, Loader2, X, Users, Crown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
@@ -369,7 +369,6 @@ export function MessagesScreen() {
               </button>
             </div>
           </div>
-          <Input variant="search" placeholder="Search conversations..." leadingIcon={<Search size={18} />} />
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 lg:px-4 pb-6 space-y-1.5">
@@ -539,7 +538,6 @@ export function MessagesScreen() {
                   {sendMessage.isPending || uploadMedia.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={16} />}
                 </button>
               </form>
-              <p className="mt-2 text-center text-[10px] text-on-surface-variant/40 font-bold uppercase tracking-[0.3em]">Encrypted End-to-End</p>
             </footer>
           </>
         )}

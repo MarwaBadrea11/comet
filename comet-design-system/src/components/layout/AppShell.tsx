@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import { SideNav, EXPANDED_W, COLLAPSED_W } from './SideNav'
 import { TopBar } from './TopBar'
-import { FAB } from './FAB'
 import { CreatePostModal } from '../screens/CreatePostModal'
 import { SidebarProvider, useSidebar } from '../../providers/SidebarProvider'
 import { useAuthStore } from '../../stores/authStore'
@@ -12,8 +11,6 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { usePendingRequests } from '../../hooks/useFriendsQuery'
 import { useMyProfile } from '../../hooks/useUserQuery'
 import type { NavItem } from '../../types'
-
-const NO_FAB_ROUTES = ['/messages', '/settings', '/notifications', '/friend-requests']
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -31,9 +28,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const { data: friendRequests } = usePendingRequests()
   const pendingCount = friendRequests?.length || 0
 
-  const path    = location.pathname
-  const hideFab = NO_FAB_ROUTES.includes(path)
-
+  const path = location.pathname
   const desktopMargin = collapsed ? COLLAPSED_W : EXPANDED_W
 
   const NAV_ITEMS: NavItem[] = useMemo(() => [
@@ -77,8 +72,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       >
         {children}
       </motion.main>
-
-      {!hideFab && <FAB onClick={openCreatePost} />}
 
       <CreatePostModal open={createPostOpen} onClose={closeCreatePost} />
     </div>
