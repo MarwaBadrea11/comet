@@ -85,6 +85,7 @@ export interface Post {
   deletedAt: string | null
   sharedPostId: string | null
   status?: ScheduledPostStatus
+  type?: 'POST' | 'STORY' // Explicitly tracks if this is a regular post or story
   // Relations
   user?: PostUser
   media?: Media[]
@@ -150,6 +151,7 @@ export interface CreatePostRequest {
   feeling?: string
   location?: string
   mediaIds?: string[]
+  type?: 'POST' | 'STORY' // Explicitly specify post type
 }
 
 export interface UpdatePostRequest {
@@ -167,6 +169,7 @@ export interface SchedulePostRequest {
   location?: string
   mediaIds?: string[]
   scheduledAt: string // ISO 8601 timestamp
+  type?: 'POST' | 'STORY' // Explicitly specify post type
 }
 
 export interface SharePostRequest {

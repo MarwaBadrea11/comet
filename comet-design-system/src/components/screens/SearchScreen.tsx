@@ -1,37 +1,41 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Search, Loader2, Mail, User, MapPin, CheckCircle, XCircle, Calendar } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Search, Loader2, Mail, User, CheckCircle, XCircle, Calendar, Clock, X, Trash2 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Avatar } from '../ui/Avatar'
-import { useSearch } from '../../hooks/useSearchQuery'
+import { useGlobalSearch, useSaveSearch, useSearchHistory, useDeleteHistoryItem, useClearAllHistory } from '../../hooks/useSearchQuery'
 
 export function SearchScreen() {
   const navigate = useNavigate()
   const [emailInput, setEmailInput] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
 
-  // استخدام هوك useSearch مع تحديد فئة 'users' للبحث في المستخدمين فقط
-  const { data: searchResponse, isLoading, isError, error } = useSearch(
-    activeQuery,
-    'users'
-  )
+  const { data: results, isLoading, isError, error } = useGlobalSearch(activeQuery)
+  const { data: history = [] } = useSearchHistory()
+  const saveSearch = useSaveSearch()
+  const deleteHistoryItem = useDeleteHistoryItem()
+  const clearAllHistory = useClearAllHistory()
 
-  // استخراج قائمة المستخدمين من الاستجابة
-  const users = searchResponse?.users || searchResponse?.data || (Array.isArray(searchResponse) ? searchResponse : [])
+  const users = results?.users ?? []
 
-  // المطابقة بناءً على البريد الإلكتروني
+  // Prefer an exact email match; fall back to the first user the query matched.
   const foundUser = activeQuery && users.length > 0
-    ? users.find((u: any) => u.email?.toLowerCase() === activeQuery.toLowerCase()) || users[0]
+    ? users.find((u) => u.email?.toLowerCase() === activeQuery.toLowerCase()) || users[0]
     : null
+
+  const runSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+    setEmailInput(trimmed)
+    setActiveQuery(trimmed)
+    saveSearch.mutate({ query: trimmed, searchType: 'USERS' })
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmed = emailInput.trim()
-    if (trimmed) {
-      setActiveQuery(trimmed)
-    }
+    runSearch(emailInput)
   }
 
   const handleClearSearch = () => {
@@ -92,6 +96,50 @@ export function SearchScreen() {
               </Button>
             )}
           </form>
+
+          {/* Recent Searches */}
+          {!activeQuery && history.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/60">Recent Searches</h3>
+                <button
+                  onClick={() => clearAllHistory.mutate()}
+                  disabled={clearAllHistory.isPending}
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  <Trash2 size={12} /> Clear all
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <AnimatePresence>
+                  {history.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="flex items-center gap-1.5 bg-surface-container-high/50 hover:bg-surface-container-high rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
+                    >
+                      <button
+                        onClick={() => runSearch(item.query)}
+                        className="flex items-center gap-1.5 text-sm text-on-surface-variant"
+                      >
+                        <Clock size={12} className="opacity-50" />
+                        {item.query}
+                      </button>
+                      <button
+                        onClick={() => deleteHistoryItem.mutate(item.id)}
+                        className="p-1 rounded-full hover:bg-surface-container-highest text-on-surface-variant/50 hover:text-error transition-colors"
+                        aria-label="Remove from history"
+                      >
+                        <X size={12} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -123,7 +171,7 @@ export function SearchScreen() {
             <User className="w-16 h-16 text-on-surface-variant/30 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-on-surface mb-2">No User Found</h3>
             <p className="text-sm text-on-surface-variant/70 max-w-md mx-auto">
-              We couldn't find a user with the email address <span className="font-semibold text-on-surface">"{activeQuery}"</span>.
+              We couldn't find a user matching <span className="font-semibold text-on-surface">"{activeQuery}"</span>.
               Please check the email and try again.
             </p>
           </motion.div>
@@ -140,7 +188,7 @@ export function SearchScreen() {
             <div className="h-32 md:h-40 bg-gradient-to-br from-primary/20 via-[#00D4FF]/10 to-primary/30 relative">
               <div className="absolute -bottom-16 left-8">
                 <Avatar
-                  src={foundUser.avatar}
+                  src={foundUser.avatar?.url}
                   alt={foundUser.name || 'User Avatar'}
                   size="xl"
                   className="border-4 border-white shadow-xl w-32 h-32"
@@ -192,36 +240,6 @@ export function SearchScreen() {
 
               {/* User Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Location */}
-                {(foundUser.city || foundUser.country) && (
-                  <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
-                    <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
-                        Location
-                      </p>
-                      <p className="text-sm font-medium text-on-surface">
-                        {[foundUser.city, foundUser.country].filter(Boolean).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Gender */}
-                {foundUser.gender && (
-                  <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">
-                    <User className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
-                        Gender
-                      </p>
-                      <p className="text-sm font-medium text-on-surface capitalize">
-                        {foundUser.gender.toLowerCase().replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* Role */}
                 {foundUser.role && (
                   <div className="flex items-start gap-3 p-4 bg-surface-container-high/20 rounded-xl">

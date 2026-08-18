@@ -1,43 +1,20 @@
 /**
  * Search query and history hooks.
- * Now maps to /search-history/* endpoints.
  *
- * useSearch              — GET /search-history?q=&category=&page=&limit=
- * useSearchHistory       — GET /search-history/history (Fetches user's recent searches)
- * useDeleteHistoryItem   — DELETE /search-history/history/:id (Removes a single item)
- * useClearAllHistory     — DELETE /search-history/history (Clears the entire history)
+ * useGlobalSearch        — GET /search/global?q=&limit= (users incl. by email, posts, groups)
+ * useSaveSearch          — POST /search-history
+ * useRecentSearches      — GET /search-history/recent?searchType=
+ * useSearchHistory       — GET /search-history/history
+ * useDeleteHistoryItem   — DELETE /search-history/:id
+ * useClearAllHistory     — DELETE /search-history/clear/all
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { searchService, type SearchCategory } from '../services/search'
+import { searchService, type SearchType } from '../services/search'
 import { queryKeys } from '../lib/queryKeys'
 
-/**
- * Main search hook using the refactored /search-history endpoint.
- * @param query - Search query string (must be non-empty)
- * @param category - Search category: 'all', 'users', 'posts', or 'groups' (default: 'all')
- * @param page - Page number for pagination (default: 1)
- * @param limit - Results per page (default: 20)
- */
-export function useSearch(
-  query: string,
-  category: SearchCategory = 'all',
-  page = 1,
-  limit = 20
-) {
-  return useQuery({
-    queryKey: ['search', query, category, page, limit],
-    queryFn: () => searchService.search(query, category, page, limit),
-    enabled: query.trim().length >= 2, // Only search if query has at least 2 characters
-    staleTime: 0, // Search results should always reflect the latest state
-    gcTime: 2 * 60_000, // Keep results in memory for 2 min after unmount
-  })
-}
+// ── Global search ────────────────────────────────────────────────────────────
 
-/**
- * Alternative hook for global search (if /search/global is still available).
- * Use useSearch() above for the new refactored endpoint.
- */
 export function useGlobalSearch(query: string, limit = 10) {
   return useQuery({
     queryKey: queryKeys.search.global(query, limit),
@@ -48,16 +25,40 @@ export function useGlobalSearch(query: string, limit = 10) {
   })
 }
 
-// ── Fetch Search History ──────────────────────────────────────────────────────
+// ── Save a search term to history ─────────────────────────────────────────────
+
+export function useSaveSearch() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ query, searchType }: { query: string; searchType?: SearchType }) =>
+      searchService.saveSearch(query, searchType),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.search.history() })
+      qc.invalidateQueries({ queryKey: queryKeys.search.recent() })
+    },
+  })
+}
+
+// ── Recent searches (raw, optionally filtered by type) ────────────────────────
+
+export function useRecentSearches(searchType?: SearchType) {
+  return useQuery({
+    queryKey: queryKeys.search.recent(searchType),
+    queryFn: () => searchService.getRecentSearches(searchType),
+  })
+}
+
+// ── Fetch search history ──────────────────────────────────────────────────────
 
 export function useSearchHistory() {
   return useQuery({
-    queryKey: ['search', 'history'],
+    queryKey: queryKeys.search.history(),
     queryFn: () => searchService.getHistory(),
   })
 }
 
-// ── Delete Specific History Item ──────────────────────────────────────────────
+// ── Delete specific history item ──────────────────────────────────────────────
 
 export function useDeleteHistoryItem() {
   const qc = useQueryClient()
@@ -65,12 +66,13 @@ export function useDeleteHistoryItem() {
   return useMutation({
     mutationFn: (id: string) => searchService.deleteHistoryItem(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['search', 'history'] })
+      qc.invalidateQueries({ queryKey: queryKeys.search.history() })
+      qc.invalidateQueries({ queryKey: queryKeys.search.recent() })
     },
   })
 }
 
-// ── Clear All History ─────────────────────────────────────────────────────────
+// ── Clear all history ──────────────────────────────────────────────────────────
 
 export function useClearAllHistory() {
   const qc = useQueryClient()
@@ -78,17 +80,17 @@ export function useClearAllHistory() {
   return useMutation({
     mutationFn: () => searchService.clearAllHistory(),
     onMutate: async () => {
-      // Optimistically empty the history list in cache
-      await qc.cancelQueries({ queryKey: ['search', 'history'] })
-      const previous = qc.getQueryData(['search', 'history'])
-      qc.setQueryData(['search', 'history'], [])
+      await qc.cancelQueries({ queryKey: queryKeys.search.history() })
+      const previous = qc.getQueryData(queryKeys.search.history())
+      qc.setQueryData(queryKeys.search.history(), [])
       return { previous }
     },
     onError: (_err, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(['search', 'history'], ctx.previous)
+      if (ctx?.previous) qc.setQueryData(queryKeys.search.history(), ctx.previous)
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['search', 'history'] })
+      qc.invalidateQueries({ queryKey: queryKeys.search.history() })
+      qc.invalidateQueries({ queryKey: queryKeys.search.recent() })
     },
   })
 }

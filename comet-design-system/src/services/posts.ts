@@ -37,9 +37,12 @@ export const postsService = {
       posts = data.data
     }
     
-    // Filter out any stories that might have leaked into the feed
-    // Stories have a story table entry and should only appear in /story/feed
-    return posts.filter(post => !post.story)
+    // CRITICAL: Filter out any stories that might have leaked into the feed
+    // Stories should ONLY appear in the /story/feed endpoint, not in post feeds
+    // We filter by:
+    // 1. Checking if the post has a 'story' relation (backend links stories to posts)
+    // 2. Checking if the post type is 'STORY' (explicit type check)
+    return posts.filter(post => !post.story && post.type !== 'STORY')
   },
 
   /**
@@ -58,12 +61,14 @@ export const postsService = {
   getPostsByUsername: async (username: string): Promise<Post[]> => {
     const { data } = await api.get(`/post/user/${username}`)
     const posts = Array.isArray(data) ? data : data?.posts ?? []
-    // Filter out stories
-    return posts.filter((post: Post) => !post.story)
+    // CRITICAL: Filter out stories - they should not appear in user post timelines
+    // Stories have their own dedicated viewing UI (StoriesTray)
+    return posts.filter((post: Post) => !post.story && post.type !== 'STORY')
   },
 
   /**
    * POST /post
+   * Creates a new post with explicit type specification.
    */
   createPost: async (payload: {
     content?: string
@@ -72,8 +77,11 @@ export const postsService = {
     location?: string
     mediaIds?: string[]
     groupId?: string
+    type?: 'POST' | 'STORY' // Explicitly specify if this is a post or story
   }): Promise<Post> => {
-    const { data } = await api.post('/post', payload)
+    // Ensure regular posts are explicitly marked as 'POST' type
+    const postPayload = { ...payload, type: payload.type || 'POST' }
+    const { data } = await api.post('/post', postPayload)
     return data
   },
 
@@ -93,8 +101,11 @@ export const postsService = {
     mediaIds?: string[]
     scheduledAt: string // ISO 8601 timestamp
     groupId?: string
+    type?: 'POST' | 'STORY' // Explicitly specify post type
   }): Promise<Post> => {
-    const { data } = await api.post('/post/schedule', payload)
+    // Ensure scheduled posts are explicitly marked as 'POST' type
+    const postPayload = { ...payload, type: payload.type || 'POST' }
+    const { data } = await api.post('/post/schedule', postPayload)
     return data
   },
 

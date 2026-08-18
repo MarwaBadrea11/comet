@@ -10,7 +10,7 @@
  * - Multiple file support
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Upload, X, FileImage, FileVideo, Loader2, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -67,6 +67,7 @@ export function FileDropzone({
   const processFiles = useCallback((fileList: FileList) => {
     const newFiles: FileWithPreview[] = []
     const errors: string[] = []
+    const previewURLs: string[] = [] // Track created URLs for cleanup
 
     Array.from(fileList).forEach((file, index) => {
       // Check max files limit
@@ -82,12 +83,17 @@ export function FileDropzone({
         return
       }
 
-      // Create preview for images
+      // Create preview ONLY for local display (NOT for upload)
+      // The preview URL is a blob: URL that will be revoked after upload
+      let previewURL: string | undefined
+      if (file.type.startsWith('image/')) {
+        previewURL = URL.createObjectURL(file)
+        previewURLs.push(previewURL) // Track for cleanup
+      }
+
       const fileWithPreview: FileWithPreview = Object.assign(file, {
         id: `file-${Date.now()}-${index}`,
-        preview: file.type.startsWith('image/') 
-          ? URL.createObjectURL(file) 
-          : undefined,
+        preview: previewURL,
         progress: 0,
       })
 
@@ -95,12 +101,15 @@ export function FileDropzone({
     })
 
     if (errors.length > 0) {
+      // Clean up preview URLs if there were errors
+      previewURLs.forEach(url => URL.revokeObjectURL(url))
       setError(errors[0]) // Show first error
       setTimeout(() => setError(null), 5000)
     }
 
     if (newFiles.length > 0) {
       setFiles(prev => [...prev, ...newFiles])
+      // CRITICAL: Pass actual File objects to parent, NOT preview URLs
       onFilesSelected(newFiles)
     }
   }, [files.length, maxFiles, maxSize, accept, onFilesSelected])
@@ -133,7 +142,8 @@ export function FileDropzone({
   const removeFile = useCallback((fileId: string) => {
     setFiles(prev => {
       const updated = prev.filter(f => f.id !== fileId)
-      // Revoke object URL to prevent memory leaks
+      // CRITICAL: Revoke object URL to free browser memory
+      // This prevents memory leaks from blob: URLs
       const removed = prev.find(f => f.id === fileId)
       if (removed?.preview) {
         URL.revokeObjectURL(removed.preview)
@@ -141,6 +151,18 @@ export function FileDropzone({
       return updated
     })
   }, [])
+
+  // Cleanup: Revoke all preview URLs when component unmounts
+  // This is essential to prevent memory leaks from blob: URLs
+  useEffect(() => {
+    return () => {
+      files.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview)
+        }
+      })
+    }
+  }, [files])
 
   return (
     <div className="space-y-4">

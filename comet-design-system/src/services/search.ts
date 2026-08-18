@@ -1,11 +1,18 @@
 /**
  * Search service.
- * Maps to /search-history/* endpoints for search functionality and history.
+ * Maps to /search/global and /search-history/* endpoints.
+ *
+ * Backend Reference:
+ * - apps/api/src/search/search.controller.ts — GET /search/global (public, working)
+ * - apps/api/src/search-history/search-history.controller.ts — history CRUD
+ *
+ * NOTE: the category-filtered `GET /search-history?q=&category=` endpoint
+ * (search-history.controller.ts's bare @Get()) calls a service method whose
+ * success path never returns a value — it always resolves to `undefined`.
+ * Use globalSearch() (GET /search/global) instead, which is fully implemented.
  */
 
 import api from './api'
-
-export type SearchCategory = 'all' | 'users' | 'posts' | 'groups'
 
 export const SearchType = {
   USERS: 'USERS',
@@ -15,36 +22,44 @@ export const SearchType = {
 
 export type SearchType = typeof SearchType[keyof typeof SearchType]
 
+/** Media as serialized by the backend's serializeMedia() — null when unset. */
+export interface SerializedMedia {
+  id: string
+  url?: string
+  mimeType?: string
+  [key: string]: unknown
+}
+
 export interface SearchResults {
-  users?: Array<{ 
+  users: Array<{
     id: string
     name: string
     username: string
     email?: string
-    avatarMediaId?: string | null
-  }>
-  posts?: Array<{ 
-    id: string
-    content: string
-    user?: { id: string; name: string; username: string }
+    bio?: string | null
+    role?: string
     createdAt?: string
+    avatar: SerializedMedia | null
   }>
-  groups?: Array<{ 
+  posts: Array<{
+    id: string
+    content: string | null
+    createdAt?: string
+    user: { id: string; name: string; username: string; email?: string; avatar: SerializedMedia | null }
+    media?: SerializedMedia[]
+  }>
+  groups: Array<{
     id: string
     name: string
     description?: string | null
     privacy?: string
+    avatar: SerializedMedia | null
   }>
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-  }
 }
 
 export interface SearchHistoryItem {
   id: string
-  userId: string
+  userId?: string
   query: string
   searchType: SearchType
   createdAt: string
@@ -52,29 +67,41 @@ export interface SearchHistoryItem {
 
 export const searchService = {
   /**
-   * GET /search-history?q=query&category=all&page=1&limit=20
-   * Main search endpoint with query parameter (required).
-   * Backend throws 400 BadRequest if q is empty or missing.
+   * GET /search/global?q=query&limit=10
+   * Public — no auth required. Searches users (incl. by email), posts, and
+   * groups in one call. This is the endpoint SearchScreen (search-by-email) uses.
    */
-  search: async (
-    query: string,
-    category: SearchCategory = 'all',
-    page = 1,
-    limit = 20
-  ): Promise<SearchResults> => {
-    if (!query?.trim()) {
-      throw new Error('Search query cannot be empty')
+  globalSearch: async (query: string, limit = 10): Promise<SearchResults> => {
+    const { data } = await api.get('/search/global', { params: { q: query, limit } })
+    return {
+      users: data?.users ?? [],
+      posts: data?.posts ?? [],
+      groups: data?.groups ?? [],
     }
+  },
 
-    const { data } = await api.get('/search-history', {
-      params: { q: query, category, page, limit },
+  /**
+   * POST /search-history — body: { query?, searchType? }
+   * Saves (or bumps the timestamp of) a search term for the current user.
+   */
+  saveSearch: async (query: string, searchType: SearchType = 'USERS'): Promise<void> => {
+    await api.post('/search-history', { query, searchType })
+  },
+
+  /**
+   * GET /search-history/recent?searchType=
+   * Latest 10 raw search-history rows, optionally filtered by type.
+   */
+  getRecentSearches: async (searchType?: SearchType): Promise<SearchHistoryItem[]> => {
+    const { data } = await api.get('/search-history/recent', {
+      params: searchType ? { searchType } : undefined,
     })
-    return data
+    return Array.isArray(data) ? data : []
   },
 
   /**
    * GET /search-history/history
-   * Fetches the authenticated user's recent search history.
+   * Fetches the authenticated user's recent search history (latest 10).
    */
   getHistory: async (): Promise<SearchHistoryItem[]> => {
     const { data } = await api.get('/search-history/history')
@@ -82,27 +109,18 @@ export const searchService = {
   },
 
   /**
-   * DELETE /search-history/history/:id
-   * Removes a single search history item.
+   * DELETE /search-history/:id
+   * Removes a single search history item (matches the Postman "delete-history-item" route).
    */
   deleteHistoryItem: async (id: string): Promise<void> => {
-    await api.delete(`/search-history/history/${id}`)
+    await api.delete(`/search-history/${id}`)
   },
 
   /**
-   * DELETE /search-history/history
+   * DELETE /search-history/clear/all
    * Clears all search history for the authenticated user.
    */
   clearAllHistory: async (): Promise<void> => {
-    await api.delete('/search-history/history')
-  },
-
-  /**
-   * GET /search/global?q=query&limit=10
-   * Alternative global search endpoint (if still available on backend).
-   */
-  globalSearch: async (query: string, limit = 10): Promise<SearchResults> => {
-    const { data } = await api.get('/search/global', { params: { q: query, limit } })
-    return data
+    await api.delete('/search-history/clear/all')
   },
 }

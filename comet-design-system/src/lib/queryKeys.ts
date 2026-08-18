@@ -11,7 +11,6 @@ export const queryKeys = {
   user: {
     all:     ()         => ['user'] as const,
     byId:    (id: string) => ['user', id] as const,
-    allUsers: (page?: number, limit?: number) => ['users', 'all', page, limit] as const,
   },
 
   // ── Posts ─────────────────────────────────────────────────────────────────
@@ -43,12 +42,6 @@ export const queryKeys = {
     byId: (id: string)                => ['stories', 'detail', id] as const,
   },
 
-  // ── Groups ────────────────────────────────────────────────────────────────
-  groups: {
-    all:   ()           => ['groups'] as const,
-    byId:  (id: string) => ['groups', id] as const,
-  },
-
   // ── Conversations & Messages ──────────────────────────────────────────────
   conversations: {
     mine:    ()           => ['conversations', 'mine'] as const,
@@ -66,15 +59,15 @@ export const queryKeys = {
 
   // ── Search ────────────────────────────────────────────────────────────────
   search: {
-    // Main search with new /search-history endpoint
-    query: (query: string, category: string, page: number, limit: number) => 
-      ['search', query, category, page, limit] as const,
-    // Legacy global search (if /search/global still available)
-    global: (query: string, limit: number) => 
+    // GET /search/global — the only working search endpoint (see searchService)
+    global: (query: string, limit: number) =>
       ['search', 'global', query, limit] as const,
-    // Search history
-    history: () => 
+    // GET /search-history/history
+    history: () =>
       ['search', 'history'] as const,
+    // GET /search-history/recent?searchType=
+    recent: (searchType?: string) =>
+      ['search', 'recent', searchType ?? 'all'] as const,
   },
 
   // ── Media ─────────────────────────────────────────────────────────────────

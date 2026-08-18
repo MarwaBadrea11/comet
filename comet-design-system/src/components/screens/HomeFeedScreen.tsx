@@ -15,6 +15,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { CreateStoryModal } from './CreateStoryModal'
+import { CreatePostModal } from './CreatePostModal'
 import { EditPostModal } from './EditPostModal'
 
 const COSMIC_EMOJIS = ['✨', '🚀', '🪐', '🌌', '☄️', '🔮', '💜', '😎', '😂', '🔥', '👀', '💯']
@@ -33,6 +34,9 @@ export function HomeFeedScreen() {
   
   // 🌟 إضافة ستيت التحكم بمودال الستوري
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false)
+  
+  // 🌟 إضافة ستيت التحكم بمودال إنشاء البوست
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false)
   
   // 🌟 إضافة ستيت التحكم بمودال تعديل البوست
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
@@ -55,8 +59,11 @@ export function HomeFeedScreen() {
   const currentAccountLocalPosts = allLocalPosts.filter((p: any) => p.userId === user?.id)
   const serverPosts = feed.filter((sp: any) => !currentAccountLocalPosts.some(lp => String(lp.id) === String(sp.id)))
   
-  // Filter out any stories that might have leaked into the feed
-  // Stories should ONLY appear in the stories strip, not in the main feed
+  // CRITICAL FILTER: Exclude stories from the main post feed
+  // Stories should ONLY appear in the StoriesTray component at the top
+  // Filter by:
+  // 1. post.story relation (backend links stories to posts)
+  // 2. post.type === 'STORY' (explicit type check)
   const posts = [
     ...currentAccountLocalPosts.filter((p: any) => !p.story && p.type !== 'STORY'),
     ...serverPosts.filter((p: any) => !p.story && p.type !== 'STORY')
@@ -91,7 +98,7 @@ export function HomeFeedScreen() {
     const pendingText = newPostContent.trim()
 
     createPost.mutate(
-      { content: pendingText, visibility: 'PUBLIC' },
+      { content: pendingText, visibility: 'PUBLIC', type: 'POST' }, // Explicitly set type='POST'
       { 
         onSuccess: (savedPost) => {
           setNewPostContent('')
@@ -242,14 +249,27 @@ export function HomeFeedScreen() {
                 <textarea
                   value={newPostContent}
                   onChange={e => setNewPostContent(e.target.value)}
+                  onClick={() => {
+                    // Open full modal for rich post creation with media upload
+                    if (!newPostContent.trim()) {
+                      setIsCreatePostModalOpen(true)
+                    }
+                  }}
                   placeholder="Share your celestial thoughts..."
-                  className="w-full bg-transparent border-none resize-none focus:outline-none text-on-surface placeholder-on-surface-variant/50 pt-1.5 min-h-[60px] md:min-h-[80px] text-sm md:text-base"
+                  className="w-full bg-transparent border-none resize-none focus:outline-none text-on-surface placeholder-on-surface-variant/50 pt-1.5 min-h-[60px] md:min-h-[80px] text-sm md:text-base cursor-pointer"
                 />
               </div>
               <div className="h-px bg-outline-variant/20" />
               <div className="flex justify-between items-center">
                 <div className="flex gap-0.5 md:gap-1 text-on-surface-variant/70 relative items-center">
-                  <button type="button" className="p-2 hover:bg-surface rounded-xl transition-colors hover:text-primary"><Image size={20} /></button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsCreatePostModalOpen(true)}
+                    className="p-2 hover:bg-surface rounded-xl transition-colors hover:text-primary"
+                    title="Upload images or videos"
+                  >
+                    <Image size={20} />
+                  </button>
                   <div className="relative">
                     <button 
                       type="button" 
@@ -490,6 +510,16 @@ export function HomeFeedScreen() {
       <CreateStoryModal 
         open={isStoryModalOpen} 
         onClose={() => setIsStoryModalOpen(false)} 
+      />
+
+      {/* ── Create Post Modal (for rich posts with media) ── */}
+      <CreatePostModal
+        open={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+        onCreated={() => {
+          setIsCreatePostModalOpen(false)
+          refetch()
+        }}
       />
 
       {/* ── Edit Post Modal ── */}

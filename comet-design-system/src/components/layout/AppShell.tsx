@@ -39,10 +39,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const NAV_ITEMS: NavItem[] = useMemo(() => [
     { label: t('sidebar.home'),          icon: 'home',          href: '/home' },
     { label: t('sidebar.explore'),       icon: 'explore',       href: '/explore' },
-    { label: t('sidebar.users'),         icon: 'people',        href: '/users' },
     { label: t('sidebar.messages'),      icon: 'mail',          href: '/messages' },
     { label: t('sidebar.friendRequests'), icon: 'person_add',   href: '/friend-requests' },
-    { label: t('sidebar.groups'),        icon: 'group',         href: '/groups' },
     { label: t('sidebar.notifications'), icon: 'notifications', href: '/notifications' },
     { label: t('sidebar.settings'),      icon: 'settings',      href: '/settings' },
   ], [t])

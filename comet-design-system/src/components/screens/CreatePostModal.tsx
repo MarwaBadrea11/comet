@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Smile, Clock, Globe, Users, Lock } from 'lucide-react'
 import EmojiPicker from 'emoji-picker-react'
@@ -45,7 +45,9 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
   const [feeling, setFeeling] = useState('')
   const [location, setLocation] = useState('')
   const [mediaIds, setMediaIds] = useState<string[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{ id: string; file: File; previewUrl?: string }>>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
   const [showScheduler, setShowScheduler] = useState(false)
@@ -54,22 +56,47 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
   const createPost = useCreatePost()
   const schedulePost = useSchedulePost()
 
+  // Cleanup: Revoke preview URLs when modal closes or component unmounts
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl)
+        }
+      })
+    }
+  }, [uploadedFiles])
+
   const handleFilesSelected = async (files: File[]) => {
     if (files.length === 0) return
     setIsUploading(true)
+    setUploadError(null) // Clear previous errors
+    
+    console.log('📤 Starting file upload...', { fileCount: files.length })
     
     try {
       const uploadedIds: string[] = []
+      const newUploadedFiles: Array<{ id: string; file: File; previewUrl?: string }> = []
       
       for (const file of files) {
+        console.log('📎 Processing file:', { name: file.name, size: file.size, type: file.type })
+        
         // Client-side validation: 50MB max
         if (file.size > 50 * 1024 * 1024) {
-          toast.error(`File "${file.name}" exceeds 50MB limit`)
+          const errorMsg = `File "${file.name}" exceeds 50MB limit`
+          console.error('❌', errorMsg)
+          toast.error(errorMsg)
           continue
         }
 
+        // Create preview URL ONLY for local display during upload
+        const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+
         const formData = new FormData()
+        // CRITICAL: Append the actual File object, NOT the preview URL
         formData.append('file', file)
+        
+        console.log('🚀 Uploading file to /media/upload...', file.name)
         
         try {
           const response = await api.post('/media/upload', formData, {
@@ -86,25 +113,71 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
               },
             ],
           })
-          if (response.data?.id) uploadedIds.push(String(response.data.id))
-        } catch (err: any) {
-          // Handle specific error codes
-          if (err.response?.status === 413) {
-            toast.error(`File "${file.name}" is too large (max 50MB)`)
-          } else if (err.response?.status === 400) {
-            toast.error(`Invalid file type: ${file.name}`)
+          
+          console.log('✅ Upload response:', response.data)
+          
+          // Extract the media ID from backend response
+          if (response.data?.id) {
+            const mediaId = String(response.data.id)
+            uploadedIds.push(mediaId)
+            newUploadedFiles.push({
+              id: mediaId,
+              file,
+              previewUrl
+            })
+            console.log('✅ File uploaded successfully, media ID:', mediaId)
           } else {
-            toast.error(`Upload failed: ${file.name}`)
+            console.error('❌ Upload response missing ID:', response.data)
+            toast.error(`Upload failed: No media ID returned for ${file.name}`)
+          }
+          
+          // CRITICAL: Clean up preview URL after successful upload
+          if (previewUrl) {
+            URL.revokeObjectURL(previewUrl)
+          }
+        } catch (err: any) {
+          console.error('❌ Upload error:', err)
+          console.error('Error response:', err.response)
+          
+          // Clean up preview URL on error
+          if (previewUrl) {
+            URL.revokeObjectURL(previewUrl)
+          }
+          
+          // Handle specific error codes
+          const status = err.response?.status
+          const message = err.response?.data?.message || err.message
+          
+          if (status === 413) {
+            toast.error(`File "${file.name}" is too large (max 50MB)`)
+          } else if (status === 400) {
+            toast.error(`Invalid file type: ${file.name}`)
+          } else if (status === 401) {
+            toast.error('Session expired. Please login again.')
+            setUploadError('Authentication required. Please login.')
+          } else if (status === 500) {
+            toast.error(`Server error uploading ${file.name}`)
+            setUploadError('Server error. Please try again later.')
+          } else {
+            toast.error(`Upload failed: ${file.name} - ${message}`)
+            setUploadError(`Upload failed: ${message}`)
           }
         }
       }
       
       if (uploadedIds.length > 0) {
+        // Store ONLY the media IDs returned from the server, NOT preview URLs
         setMediaIds(prev => [...prev, ...uploadedIds])
+        setUploadedFiles(prev => [...prev, ...newUploadedFiles])
         toast.success(`${uploadedIds.length} file(s) uploaded successfully`)
+        console.log('✅ All files uploaded. Media IDs:', uploadedIds)
+      } else {
+        console.warn('⚠️ No files were uploaded successfully')
       }
     } catch (err) {
+      console.error('❌ Upload process error:', err)
       toast.error('Upload failed. Please try again.')
+      setUploadError('Upload failed. Please check your connection and try again.')
     } finally {
       setIsUploading(false)
     }
@@ -117,11 +190,22 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
     }
     const pendingText = content.trim()
 
+    console.log('📝 Creating post with payload:', {
+      content: pendingText,
+      visibility,
+      mediaIds,
+      feeling,
+      location,
+      groupId,
+      type: 'POST',
+      mediaCount: mediaIds.length
+    })
+
     // Determine if we're scheduling or posting immediately
     const isScheduled = scheduledDate && scheduledDate.getTime() > Date.now()
 
     if (isScheduled) {
-      // Schedule the post
+      // Schedule the post - explicitly set type='POST'
       schedulePost.mutate(
         {
           content: pendingText,
@@ -131,12 +215,14 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
           location,
           scheduledAt: scheduledDate.toISOString(),
           groupId,
+          type: 'POST', // Explicitly mark as POST (not STORY)
         },
         {
           onSuccess: () => {
             toast.success('Post scheduled successfully!')
             setContent('')
             setMediaIds([])
+            setUploadedFiles([]) // Clear uploaded files
             setLocation('')
             setFeeling('')
             setScheduledDate(undefined)
@@ -156,9 +242,9 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
         }
       )
     } else {
-      // Post immediately
+      // Post immediately - explicitly set type='POST' to distinguish from stories
       createPost.mutate(
-        { content: pendingText, visibility, mediaIds, feeling, location, groupId },
+        { content: pendingText, visibility, mediaIds, feeling, location, groupId, type: 'POST' },
         {
           onSuccess: (savedPost) => {
             const saved = localStorage.getItem('comet_global_local_posts')
@@ -196,6 +282,7 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
             toast.success('Post created successfully!')
             setContent('')
             setMediaIds([])
+            setUploadedFiles([]) // Clear uploaded files
             setLocation('')
             setFeeling('')
             setShowVisibilityPicker(false)
@@ -204,7 +291,30 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
             onSuccess?.()
             queryClient.invalidateQueries({ queryKey: ['feed'] }).catch(() => {})
           },
-          onError: () => {
+          onError: (err: any) => {
+            // Log the actual error for debugging
+            console.error('Post creation failed:', err)
+            console.error('Error response:', err.response)
+            console.error('Payload was:', { content: pendingText, visibility, mediaIds, feeling, location, groupId, type: 'POST' })
+            
+            // Show user-friendly error message
+            const status = err.response?.status
+            const message = err.response?.data?.message || err.message
+            
+            if (status === 400) {
+              toast.error(`Invalid post data: ${message}`)
+            } else if (status === 401) {
+              toast.error('Session expired. Please login again.')
+            } else if (status === 413) {
+              toast.error('Post content or media is too large')
+            } else if (status === 500) {
+              toast.error('Server error. Please try again later.')
+            } else {
+              toast.error(`Failed to create post: ${message || 'Unknown error'}`)
+            }
+            
+            // Create local fallback ONLY if user wants offline support
+            // Include mediaIds in the fallback post
             const saved = localStorage.getItem('comet_global_local_posts')
             const currentLocal = saved ? JSON.parse(saved) : []
             
@@ -222,19 +332,25 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
               reactions: [],
               comments: [],
               hashtags: [],
-              location: location || undefined
+              location: location || undefined,
+              // CRITICAL: Include media IDs in fallback post
+              mediaIds: mediaIds.length > 0 ? mediaIds : undefined,
+              _isLocalOnly: true, // Mark as local-only post
+              _failedUpload: true // Mark that this post failed to upload
             }
             localStorage.setItem('comet_global_local_posts', JSON.stringify([fallbackPost, ...currentLocal]))
             
             // 📢 إطلاق الإشارة الكونية حتى في حالة الـ Fallback لضمان الرندر الفوري
             window.dispatchEvent(new Event('comet_posts_updated'))
 
-            toast.warning('Post saved locally (offline mode)')
-            setContent('')
-            setMediaIds([])
-            setShowVisibilityPicker(false)
-            onClose()
-            onCreated?.()
+            // Don't close modal on error - let user retry or fix the issue
+            // toast.warning('Post saved locally (offline mode)')
+            // setContent('')
+            // setMediaIds([])
+            // setUploadedFiles([]) // Clear uploaded files
+            // setShowVisibilityPicker(false)
+            // onClose()
+            // onCreated?.()
           }
         }
       )
@@ -260,6 +376,28 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
                   className="w-full h-32 bg-transparent border-none resize-none focus:ring-0 text-lg p-4"
                   placeholder="What's happening in your corner of the universe?"
                 />
+                
+                {/* Upload Error Banner */}
+                {uploadError && (
+                  <div className="mt-4 p-4 bg-error/10 border border-error/30 rounded-xl text-error text-sm flex items-center justify-between">
+                    <span>{uploadError}</span>
+                    <button onClick={() => setUploadError(null)} className="text-error hover:text-error/80">
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+                
+                {/* Uploaded Media IDs Display */}
+                {mediaIds.length > 0 && (
+                  <div className="mt-4 p-4 bg-success/10 border border-success/30 rounded-xl">
+                    <p className="text-sm font-semibold text-success mb-2">
+                      ✓ {mediaIds.length} file(s) uploaded successfully
+                    </p>
+                    <div className="text-xs text-success/70 font-mono">
+                      Media IDs: {mediaIds.join(', ')}
+                    </div>
+                  </div>
+                )}
                 
                 {/* File Upload Dropzone */}
                 <div className="mt-6">

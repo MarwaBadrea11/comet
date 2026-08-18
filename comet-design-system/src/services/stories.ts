@@ -16,8 +16,15 @@ export const storiesService = {
   /**
    * POST /story/upload
    * Upload story with media files directly (multipart/form-data).
+   * This creates both a Post AND a Story record, ensuring the post has type='STORY'
+   * and is properly linked via the story relation.
    */
   uploadStory: async (formData: FormData): Promise<Story> => {
+    // Ensure the story type is explicitly set
+    if (!formData.has('type')) {
+      formData.append('type', 'STORY')
+    }
+    
     const { data } = await api.post('/story/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
@@ -27,9 +34,12 @@ export const storiesService = {
   /**
    * POST /story
    * Creates a Post + Story together (using pre-uploaded media IDs).
+   * Ensures the post type is explicitly set to 'STORY'.
    */
   createStory: async (payload: CreateStoryPayload): Promise<Story> => {
-    const { data } = await api.post('/story', payload)
+    // Explicitly set type to STORY to prevent it from appearing in post feeds
+    const storyPayload = { ...payload, type: 'STORY' }
+    const { data } = await api.post('/story', storyPayload)
     return data
   },
 

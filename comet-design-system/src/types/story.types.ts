@@ -58,6 +58,7 @@ export interface CreateStoryPayload {
   visibility?: StoryVisibility
   mediaIds?: string[]
   duration?: number
+  type?: 'STORY' // Explicitly mark as story type
 }
 
 export interface UpdateStoryPayload {

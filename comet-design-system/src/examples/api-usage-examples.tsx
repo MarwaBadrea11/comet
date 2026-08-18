@@ -15,7 +15,7 @@ import {
   useSharePost,
 } from '../hooks/usePostsQuery'
 import {
-  useSearch,
+  useGlobalSearch,
   useSearchHistory,
   useClearAllHistory,
 } from '../hooks/useSearchQuery'
@@ -23,7 +23,6 @@ import {
   useUploadMedia,
   useDeleteMedia,
 } from '../hooks/useMediaQuery'
-import type { SearchCategory } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EXAMPLE 1: Feed with Pagination
@@ -83,6 +82,7 @@ export function CreatePostExample() {
       feeling: '😊',
       location: 'New York',
       mediaIds: uploadedMediaIds,
+      type: 'POST', // Explicitly set type to POST (not STORY)
       // Hashtags are automatically extracted from content!
       // Backend uses regex: /#[\w\u0600-\u06FF]+/g
     }, {
@@ -172,35 +172,27 @@ export function SchedulePostExample() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EXAMPLE 4: Search with New Refactored Endpoint
+// EXAMPLE 4: Search (GET /search/global — the only working search endpoint)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function SearchExample() {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<SearchCategory>('all')
 
-  // ✅ NEW: Uses /search-history?q=...&category=...
-  const { data: results, isLoading } = useSearch(query, category, 1, 20)
+  // GET /search/global?q=...&limit=... — searches users (incl. email), posts,
+  // and groups in one call; no category filter (backend always returns all three).
+  const { data: results, isLoading } = useGlobalSearch(query, 20)
   const { data: history } = useSearchHistory()
 
   return (
     <div>
       <h2>Search</h2>
-      
+
       {/* Search Input */}
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search..."
       />
-
-      {/* Category Filter */}
-      <select value={category} onChange={(e) => setCategory(e.target.value as SearchCategory)}>
-        <option value="all">All</option>
-        <option value="users">Users</option>
-        <option value="posts">Posts</option>
-        <option value="groups">Groups</option>
-      </select>
 
       {/* Results */}
       {isLoading && <p>Searching...</p>}
