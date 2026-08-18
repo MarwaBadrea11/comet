@@ -12,7 +12,7 @@
  * Story visibility type.
  * Matches backend StoryVisibility enum.
  */
-export type StoryVisibility = 'PUBLIC' | 'FRIENDS' | 'ONLY_ME' | 'CUSTOM' | 'PRIVATE'
+export type StoryVisibility = 'PUBLIC' | 'FRIENDS' | 'ONLY_ME' | 'CUSTOM'
 
 export interface StoryMedia {
   media: {
@@ -58,7 +58,6 @@ export interface CreateStoryPayload {
   visibility?: StoryVisibility
   mediaIds?: string[]
   duration?: number
-  type?: 'STORY' // Explicitly mark as story type
 }
 
 export interface UpdateStoryPayload {

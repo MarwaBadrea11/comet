@@ -20,11 +20,6 @@ export const storiesService = {
    * and is properly linked via the story relation.
    */
   uploadStory: async (formData: FormData): Promise<Story> => {
-    // Ensure the story type is explicitly set
-    if (!formData.has('type')) {
-      formData.append('type', 'STORY')
-    }
-    
     const { data } = await api.post('/story/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
@@ -34,12 +29,12 @@ export const storiesService = {
   /**
    * POST /story
    * Creates a Post + Story together (using pre-uploaded media IDs).
-   * Ensures the post type is explicitly set to 'STORY'.
+   * NOTE: CreateStoryDto has no `type` field, and forbidNonWhitelisted:true
+   * rejects the whole request if one is sent — posts are distinguished from
+   * stories purely by the Story row referencing them, not a `type` field.
    */
   createStory: async (payload: CreateStoryPayload): Promise<Story> => {
-    // Explicitly set type to STORY to prevent it from appearing in post feeds
-    const storyPayload = { ...payload, type: 'STORY' }
-    const { data } = await api.post('/story', storyPayload)
+    const { data } = await api.post('/story', payload)
     return data
   },
 

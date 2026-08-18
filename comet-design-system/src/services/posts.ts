@@ -68,7 +68,11 @@ export const postsService = {
 
   /**
    * POST /post
-   * Creates a new post with explicit type specification.
+   * NOTE: CreatePostDto has no `type` field, and the global ValidationPipe
+   * runs with forbidNonWhitelisted:true — sending an extra `type` (or any
+   * unknown key) makes the whole request 400 with "property X should not
+   * exist". Posts are already distinguished from stories server-side purely
+   * by whether a Story row references them (see postsService.getFeed).
    */
   createPost: async (payload: {
     content?: string
@@ -76,12 +80,8 @@ export const postsService = {
     feeling?: string
     location?: string
     mediaIds?: string[]
-    groupId?: string
-    type?: 'POST' | 'STORY' // Explicitly specify if this is a post or story
   }): Promise<Post> => {
-    // Ensure regular posts are explicitly marked as 'POST' type
-    const postPayload = { ...payload, type: payload.type || 'POST' }
-    const { data } = await api.post('/post', postPayload)
+    const { data } = await api.post('/post', payload)
     return data
   },
 
@@ -100,12 +100,8 @@ export const postsService = {
     location?: string
     mediaIds?: string[]
     scheduledAt: string // ISO 8601 timestamp
-    groupId?: string
-    type?: 'POST' | 'STORY' // Explicitly specify post type
   }): Promise<Post> => {
-    // Ensure scheduled posts are explicitly marked as 'POST' type
-    const postPayload = { ...payload, type: payload.type || 'POST' }
-    const { data } = await api.post('/post/schedule', postPayload)
+    const { data } = await api.post('/post/schedule', payload)
     return data
   },
 

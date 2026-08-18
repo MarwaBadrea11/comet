@@ -233,7 +233,7 @@ export function PostDetailScreen() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 md:py-12 px-4 md:px-8 pb-32">
+    <div className="max-w-4xl mx-auto py-8 md:py-12 px-4 md:px-8">
 
       {/* Back */}
       <div className="mb-8 md:mb-10 flex items-center gap-2">
@@ -469,23 +469,6 @@ export function PostDetailScreen() {
           </div>
         )}
       </section>
-
-      {/* Sticky bar */}
-      <div className="fixed bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-on-surface/90 backdrop-blur-xl text-white px-5 md:px-8 py-3 md:py-4 rounded-full flex items-center gap-6 md:gap-10 shadow-2xl shadow-primary/20">
-          {[
-            { icon: <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />, label: 'Like',    action: handleLike },
-            { icon: <MessageCircle size={18} />,                                   label: 'Comment', action: () => {} },
-            { icon: <Share2 size={18} />,                                          label: 'Share',   action: handleShare },
-          ].map((a, i) => (
-            <button key={i} onClick={a.action} className="flex items-center gap-2 hover:text-primary transition-colors">
-              {a.icon}
-              <span className="text-xs md:text-sm font-bold">{a.label}</span>
-              {i < 2 && <div className="w-px h-4 bg-white/20 ml-4 md:ml-10" />}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Edit Post Modal */}
       {isEditModalOpen && post && (

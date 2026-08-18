@@ -30,7 +30,7 @@ const VISIBILITY_OPTIONS = [
 
 type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
 
-export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }: Props) {
+export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) {
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
   const { data: profile } = useMyProfile()
@@ -196,8 +196,6 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
       mediaIds,
       feeling,
       location,
-      groupId,
-      type: 'POST',
       mediaCount: mediaIds.length
     })
 
@@ -205,7 +203,7 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
     const isScheduled = scheduledDate && scheduledDate.getTime() > Date.now()
 
     if (isScheduled) {
-      // Schedule the post - explicitly set type='POST'
+      // Schedule the post
       schedulePost.mutate(
         {
           content: pendingText,
@@ -214,8 +212,6 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
           feeling,
           location,
           scheduledAt: scheduledDate.toISOString(),
-          groupId,
-          type: 'POST', // Explicitly mark as POST (not STORY)
         },
         {
           onSuccess: () => {
@@ -242,9 +238,9 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
         }
       )
     } else {
-      // Post immediately - explicitly set type='POST' to distinguish from stories
+      // Post immediately
       createPost.mutate(
-        { content: pendingText, visibility, mediaIds, feeling, location, groupId, type: 'POST' },
+        { content: pendingText, visibility, mediaIds, feeling, location },
         {
           onSuccess: (savedPost) => {
             const saved = localStorage.getItem('comet_global_local_posts')
@@ -295,7 +291,7 @@ export function CreatePostModal({ open, onClose, onCreated, groupId, onSuccess }
             // Log the actual error for debugging
             console.error('Post creation failed:', err)
             console.error('Error response:', err.response)
-            console.error('Payload was:', { content: pendingText, visibility, mediaIds, feeling, location, groupId, type: 'POST' })
+            console.error('Payload was:', { content: pendingText, visibility, mediaIds, feeling, location })
             
             // Show user-friendly error message
             const status = err.response?.status

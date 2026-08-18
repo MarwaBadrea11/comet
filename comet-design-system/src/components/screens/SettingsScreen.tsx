@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Sun, Moon, Globe } from 'lucide-react'
+import { Sun, Moon, Globe } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -13,7 +13,6 @@ export function SettingsScreen() {
 
   const CATEGORIES = [
     { id: 'appearance', label: t.settings.categories.appearance, icon: 'palette' },
-    { id: 'account', label: t.settings.categories.account, icon: 'person' },
     { id: 'privacy', label: t.settings.categories.privacy, icon: 'block' },
   ]
 
@@ -133,30 +132,7 @@ export function SettingsScreen() {
             </section>
           )}
 
-          {/* Account Center */}
-          {activeCategory === 'account' && (
-            <section className="bg-surface-container-low rounded-[2rem] p-8">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-headline font-bold text-on-surface">{t.settings.account.title}</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl group cursor-pointer hover:shadow-sm transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary-fixed group-hover:text-primary transition-colors">
-                      <span className="material-symbols-outlined">password</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-on-surface text-sm">{t.settings.account.changePassword.title}</p>
-                      <p className="text-xs text-on-surface-variant">{t.settings.account.changePassword.sub}</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} className="text-outline-variant group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Privacy & Blocking */}
+          {/* Blocking */}
           {activeCategory === 'privacy' && (
             <section>
               <div className="mb-6">

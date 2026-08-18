@@ -106,7 +106,7 @@ DropdownMenu.Content = function Content({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
           transition={{ duration: 0.15 }}
-          className={`absolute ${alignmentClasses[align]} top-full mt-2 w-56 bg-white/95 backdrop-blur-md border border-outline-variant/20 rounded-2xl shadow-xl overflow-hidden z-50`}
+          className={`absolute ${alignmentClasses[align]} top-full mt-2 w-56 bg-white/95 backdrop-blur-md border border-outline-variant/20 rounded-2xl shadow-xl overflow-hidden z-[100]`}
         >
           <div className="py-2">
             {children}

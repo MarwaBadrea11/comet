@@ -98,7 +98,7 @@ export function HomeFeedScreen() {
     const pendingText = newPostContent.trim()
 
     createPost.mutate(
-      { content: pendingText, visibility: 'PUBLIC', type: 'POST' }, // Explicitly set type='POST'
+      { content: pendingText, visibility: 'PUBLIC' },
       { 
         onSuccess: (savedPost) => {
           setNewPostContent('')
@@ -345,7 +345,7 @@ export function HomeFeedScreen() {
                 const comments = post.comments || []
 
                 return (
-                  <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)] overflow-hidden">
+                  <motion.div key={post.id} {...motionVariants.scaleIn} className="bg-white rounded-2xl md:rounded-[2rem] border border-outline-variant/10 shadow-[0_4px_25px_rgba(0,0,0,0.01)]">
                     <div className="p-4 md:p-6 flex justify-between items-center">
                       <div className="flex gap-3 md:gap-4 items-center cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
                         <img 

@@ -46,13 +46,6 @@ export interface Translations {
         arabic: string
       }
     }
-    account: {
-      title: string
-      changePassword: {
-        title: string
-        sub: string
-      }
-    }
     privacy: {
       title: string
       subtitle: string
@@ -87,8 +80,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Manage your celestial presence and customize your experience.',
       categories: {
         appearance: 'Appearance',
-        account: 'Account Center',
-        privacy: 'Privacy & Blocking',
+        privacy: 'Blocking',
       },
       appearance: {
         title: 'Appearance & Language',
@@ -105,15 +97,8 @@ export const translations: Record<Language, Translations> = {
           arabic: 'العربية',
         },
       },
-      account: {
-        title: 'Account Center',
-        changePassword: {
-          title: 'Change Password',
-          sub: 'Last updated 3 months ago',
-        },
-      },
       privacy: {
-        title: 'Privacy & Blocking',
+        title: 'Blocking',
         subtitle: 'Manage who can see your content and who you\'ve blocked',
         blockedUsers: {
           title: 'Blocked Users',
@@ -144,8 +129,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'إدارة وجودك الرقمي وتخصيص تجربتك.',
       categories: {
         appearance: 'المظهر',
-        account: 'مركز الحساب',
-        privacy: 'الخصوصية والحظر',
+        privacy: 'الحظر',
       },
       appearance: {
         title: 'المظهر واللغة',
@@ -162,15 +146,8 @@ export const translations: Record<Language, Translations> = {
           arabic: 'العربية',
         },
       },
-      account: {
-        title: 'مركز الحساب',
-        changePassword: {
-          title: 'تغيير كلمة المرور',
-          sub: 'آخر تحديث قبل 3 أشهر',
-        },
-      },
       privacy: {
-        title: 'الخصوصية والحظر',
+        title: 'الحظر',
         subtitle: 'إدارة من يمكنه رؤية محتواك ومن قمت بحظره',
         blockedUsers: {
           title: 'المستخدمون المحظورون',

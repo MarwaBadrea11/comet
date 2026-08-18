@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Image as ImageIcon, Loader2, Send, Globe, Users, Lock, Settings } from 'lucide-react'
+import { X, Image as ImageIcon, Loader2, Send, Globe, Users, Lock } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
@@ -13,12 +13,20 @@ interface Props {
   onCreated?: () => void
 }
 
+// Stories always expire after 24 hours — not user-configurable.
+const STORY_DURATION_HOURS = 24
+
+const visibilityOptions: Array<{ value: StoryVisibility; label: string; icon: typeof Globe }> = [
+  { value: 'PUBLIC', label: 'Public', icon: Globe },
+  { value: 'FRIENDS', label: 'Friends', icon: Users },
+  { value: 'ONLY_ME', label: 'Only Me', icon: Lock },
+]
+
 export function CreateStoryModal({ open, onClose, onCreated }: Props) {
   const [content, setContent] = useState('')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState('')
   const [visibility, setVisibility] = useState<StoryVisibility>('FRIENDS')
-  const [duration, setDuration] = useState(24)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadStory = useUploadStory()
@@ -28,8 +36,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     if (!files || files.length === 0) return
 
     const file = files[0]
-    
-    // Validate file type
+
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm']
     if (!validTypes.includes(file.type)) {
       toast.error('Invalid file type. Please upload an image or video.')
@@ -37,8 +44,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     }
 
     setMediaFile(file)
-    
-    // Create preview URL
+
     const reader = new FileReader()
     reader.onload = (e) => {
       setMediaPreview(e.target?.result as string)
@@ -53,21 +59,21 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     }
 
     const formData = new FormData()
-    
+
     if (mediaFile) {
       formData.append('files', mediaFile)
     }
-    
+
     if (content.trim()) {
       formData.append('content', content.trim())
     }
-    
+
     formData.append('visibility', visibility)
-    formData.append('duration', String(duration))
+    formData.append('duration', String(STORY_DURATION_HOURS))
 
     uploadStory.mutate(formData, {
       onSuccess: () => {
-        toast.success('Story published!')
+        toast.success('Story published! It will be visible for 24 hours.')
         resetForm()
         onClose()
         onCreated?.()
@@ -75,7 +81,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
       onError: (err: any) => {
         const status = err.response?.status
         const message = err.response?.data?.message || err.message
-        
+
         if (status === 400) {
           toast.error(message || 'Invalid story content. Please check your input.')
         } else if (status === 401) {
@@ -96,7 +102,6 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     setMediaFile(null)
     setMediaPreview('')
     setVisibility('FRIENDS')
-    setDuration(24)
   }
 
   const handleClose = () => {
@@ -104,19 +109,13 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
     onClose()
   }
 
-  const visibilityOptions = [
-    { value: 'PUBLIC' as StoryVisibility, label: 'Public', icon: Globe },
-    { value: 'FRIENDS' as StoryVisibility, label: 'Friends', icon: Users },
-    { value: 'PRIVATE' as StoryVisibility, label: 'Private', icon: Lock },
-  ]
-
   return (
     <AnimatePresence>
       {open && (
         <>
           <motion.div
             {...motionVariants.modalBackdrop}
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md"
+            className="fixed inset-0 z-[100] bg-on-surface/10 backdrop-blur-sm"
             onClick={handleClose}
           />
 
@@ -124,23 +123,23 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
             {...motionVariants.scaleIn}
             className="fixed inset-0 z-[101] flex items-center justify-center p-4"
           >
-            <div className="bg-[#0D0E12] text-white w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.8)]">
+            <div className="bg-surface w-full max-w-md rounded-[2rem] flex flex-col overflow-hidden border border-outline-variant/15 shadow-[0_24px_60px_rgba(0,0,0,0.12)]">
 
-              <div className="px-6 py-5 flex items-center justify-between border-b border-white/5">
-                <h2 className="font-headline text-lg font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                  Create Cosmic Story
+              <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10">
+                <h2 className="font-headline text-lg font-bold text-on-surface">
+                  Create Story
                 </h2>
-                <button onClick={handleClose} className="p-1 hover:bg-white/5 rounded-full transition-colors">
-                  <X size={18} />
+                <button onClick={handleClose} className="p-1 hover:bg-surface-container-low rounded-full transition-colors">
+                  <X size={18} className="text-on-surface-variant" />
                 </button>
               </div>
 
-              <div className="p-6 flex flex-col items-center justify-center flex-1 min-h-[300px] bg-neutral-950/40 relative">
+              <div className="p-6 flex flex-col items-center justify-center flex-1 min-h-[300px] bg-surface-container-low/40 relative">
 
                 {uploadStory.isPending ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-xs text-white/40">Publishing story to orbit...</p>
+                    <p className="text-xs text-on-surface-variant">Publishing your story...</p>
                   </div>
                 ) : mediaPreview ? (
                   <div className="relative w-full h-[280px] rounded-2xl overflow-hidden group">
@@ -151,40 +150,39 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                     )}
                     <button
                       onClick={() => { setMediaPreview(''); setMediaFile(null) }}
-                      className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 p-1.5 rounded-full transition-colors"
+                      className="absolute top-3 right-3 bg-black/50 hover:bg-error p-1.5 rounded-full transition-colors"
                     >
-                      <X size={14} />
+                      <X size={14} className="text-white" />
                     </button>
-                    {/* Text overlay for media stories */}
                     {content && (
-                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
                         <p className="text-white text-sm font-medium">{content}</p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="w-full h-[280px] rounded-2xl bg-gradient-to-tr from-[#6B46C0] to-[#00D4FF] p-6 flex items-center justify-center relative shadow-inner">
+                  <div className="w-full h-[280px] rounded-2xl bg-gradient-to-tr from-primary/15 to-[#00D4FF]/15 border border-outline-variant/10 p-6 flex items-center justify-center relative">
                     <textarea
                       value={content}
                       onChange={e => setContent(e.target.value)}
                       maxLength={150}
-                      className="w-full bg-transparent border-none resize-none focus:ring-0 text-center text-xl font-bold placeholder-white/60 text-white outline-none"
-                      placeholder="Type your stellar status..."
+                      className="w-full bg-transparent border-none resize-none focus:ring-0 text-center text-xl font-bold placeholder-on-surface-variant/40 text-on-surface outline-none"
+                      placeholder="Type your status..."
                     />
-                    <span className="absolute bottom-3 right-3 text-[10px] text-white/50 font-medium">
+                    <span className="absolute bottom-3 right-3 text-[10px] text-on-surface-variant/60 font-medium">
                       {content.length}/150
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Visibility & Duration Settings */}
-              <div className="px-6 py-3 bg-black/20 border-y border-white/5">
+              {/* Visibility — duration is fixed at 24h, not user-configurable */}
+              <div className="px-6 py-3 bg-surface-container-low/60 border-y border-outline-variant/10">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-white/60 font-medium">Visibility</span>
-                  <span className="text-xs text-white/60 font-medium">Duration: {duration}h</span>
+                  <span className="text-xs text-on-surface-variant font-medium">Visibility</span>
+                  <span className="text-xs text-on-surface-variant font-medium">Expires in 24h</span>
                 </div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2">
                   {visibilityOptions.map(({ value, label, icon: Icon }) => (
                     <button
                       key={value}
@@ -192,7 +190,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-colors ${
                         visibility === value
                           ? 'bg-primary text-white'
-                          : 'bg-white/5 text-white/60 hover:bg-white/10'
+                          : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                       }`}
                     >
                       <Icon size={14} />
@@ -200,17 +198,9 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                     </button>
                   ))}
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="168"
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                />
               </div>
 
-              <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
+              <div className="px-6 py-4 flex items-center justify-between">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadStory.isPending || !!mediaPreview}

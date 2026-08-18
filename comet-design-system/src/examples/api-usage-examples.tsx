@@ -82,7 +82,6 @@ export function CreatePostExample() {
       feeling: '😊',
       location: 'New York',
       mediaIds: uploadedMediaIds,
-      type: 'POST', // Explicitly set type to POST (not STORY)
       // Hashtags are automatically extracted from content!
       // Backend uses regex: /#[\w\u0600-\u06FF]+/g
     }, {
