@@ -396,6 +396,8 @@ export interface Translations {
     postAlreadySaved: string
     saveFailed: string
     linkCopiedAlert: string
+    postDeleted: string
+    deleteFailed: string
   }
   friendsList: {
     title: string
@@ -815,6 +817,8 @@ export const translations: Record<Language, Translations> = {
       postAlreadySaved: 'Post already saved',
       saveFailed: 'Failed to save post',
       linkCopiedAlert: 'Cosmic link copied to clipboard! 🌌',
+      postDeleted: 'Post deleted.',
+      deleteFailed: 'Failed to delete post. Please try again.',
     },
     friendsList: {
       title: 'Friends',
@@ -1232,6 +1236,8 @@ export const translations: Record<Language, Translations> = {
       postAlreadySaved: 'المنشور محفوظ بالفعل',
       saveFailed: 'فشل حفظ المنشور',
       linkCopiedAlert: 'تم نسخ الرابط! 🌌',
+      postDeleted: 'تم حذف المنشور.',
+      deleteFailed: 'فشل حذف المنشور. حاول مرة أخرى.',
     },
     friendsList: {
       title: 'الأصدقاء',

@@ -8,7 +8,7 @@ import { Button } from '../ui/Button'
 import { ReactionButton } from '../ui/ReactionButton'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
-import { usePost, useReactToPost, useSavePost, useUnsavePost, useSavedPosts } from '../../hooks/usePostsQuery'
+import { usePost, useReactToPost, useSavePost, useUnsavePost, useSavedPosts, useDeletePost } from '../../hooks/usePostsQuery'
 import { usePostComments, useCreateComment } from '../../hooks/useCommentsQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
@@ -60,6 +60,7 @@ export function PostDetailScreen() {
   const createComment  = useCreateComment()
   const savePost       = useSavePost()
   const unsavePost     = useUnsavePost()
+  const deletePost     = useDeletePost()
   const { data: savedPosts = [] } = useSavedPosts()
 
   // 2. البحث عن المنشور محلياً أولاً، وإذا لم يوجد نعتمد على داتا السيرفر
@@ -182,11 +183,27 @@ export function PostDetailScreen() {
     setReplyingToCommentId(null)
   }
 
-  // 🛠️ دالة حذف البوست محلياً
+  // 🛠️ دالة حذف البوست (فعليًا من الباك، مع تنظيف أي نسخة محلية)
   const handleDeletePost = () => {
     if (!post) return
-    setAllLocalPosts(prev => prev.filter(p => String(p.id) !== String(post.id)))
-    navigate(-1)
+    const postId = String(post.id)
+
+    if (postId.startsWith('local-')) {
+      setAllLocalPosts(prev => prev.filter(p => String(p.id) !== postId))
+      navigate(-1)
+      return
+    }
+
+    deletePost.mutate(postId, {
+      onSuccess: () => {
+        setAllLocalPosts(prev => prev.filter(p => String(p.id) !== postId))
+        toast.success(t.postDetail.postDeleted)
+        navigate(-1)
+      },
+      onError: () => {
+        toast.error(t.postDetail.deleteFailed)
+      },
+    })
   }
 
   // 🛠️ تفعيل زر الشير
