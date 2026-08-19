@@ -3,9 +3,11 @@ import { motion } from 'framer-motion'
 import { Input } from '../ui/Input'
 import { motionVariants } from '../../lib/theme'
 import { useSignUp, normaliseAuthError } from '../../hooks/useAuthMutations'
+import { useTranslation } from '../../hooks/useTranslation'
 import logoImg from '../../assets/logo.png'
 
 export function RegisterScreen() {
+  const t = useTranslation()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName:  '',
@@ -50,21 +52,17 @@ export function RegisterScreen() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden md:overflow-hidden select-none"
-      style={{
-        background:
-          'radial-gradient(circle at 12% 18%, rgba(107,70,192,0.13) 0%, transparent 42%), ' +
-          'radial-gradient(circle at 88% 82%, rgba(0,212,255,0.09) 0%, transparent 42%), #f8f9ff',
-      }}
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden md:overflow-hidden select-none bg-surface"
     >
-      <div className="hidden sm:block fixed top-[5%] right-[5%] w-[20rem] h-[20rem] md:w-[28rem] md:h-[28rem] bg-primary/10 rounded-full blur-[80px] md:blur-[110px] pointer-events-none" />
-      <div className="hidden sm:block fixed bottom-[10%] left-[2%] w-[18rem] h-[18rem] md:w-[24rem] md:h-[24rem] bg-[#00D4FF]/8 rounded-full blur-[70px] md:blur-[90px] pointer-events-none" />
+      {/* Ambient gradient orbs - visible in both themes */}
+      <div className="hidden sm:block fixed top-[5%] right-[5%] w-[20rem] h-[20rem] md:w-[28rem] md:h-[28rem] bg-primary/10 dark:bg-primary/20 rounded-full blur-[80px] md:blur-[110px] pointer-events-none" />
+      <div className="hidden sm:block fixed bottom-[10%] left-[2%] w-[18rem] h-[18rem] md:w-[24rem] md:h-[24rem] bg-[#00D4FF]/8 dark:bg-[#00D4FF]/15 rounded-full blur-[70px] md:blur-[90px] pointer-events-none" />
 
       <motion.div
         {...motionVariants.scaleIn}
         className="relative z-10 w-full max-w-[460px] my-auto max-h-[95vh] overflow-y-auto no-scrollbar"
       >
-        <div className="bg-white/72 backdrop-blur-2xl rounded-[1.75rem] shadow-[0_24px_64px_rgba(107,70,192,0.10)] border border-white/60 overflow-hidden">
+        <div className="bg-surface-container-lowest/90 dark:bg-surface-container-low/95 backdrop-blur-2xl rounded-[1.75rem] shadow-[0_24px_64px_rgba(107,70,192,0.10)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.5)] border border-outline-variant/15 dark:border-outline-variant/10 overflow-hidden">
           <div className="h-1 w-full bg-gradient-to-r from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF]" />
 
           <div className="px-6 py-8 sm:px-10 sm:pt-10 sm:pb-8 flex flex-col gap-6">
@@ -74,16 +72,16 @@ export function RegisterScreen() {
                 <img src={logoImg} alt="Comet logo" className="h-[90px] w-[90px] sm:h-[110px] sm:w-[110px] object-contain" />
               </div>
               <h1 className="text-[1.5rem] sm:text-[1.75rem] font-headline font-bold text-on-surface tracking-tight leading-tight">
-                Create Account
+                {t.auth.register.title}
               </h1>
               <p className="text-[0.815rem] sm:text-[0.875rem] text-on-surface-variant">
-                Begin your celestial journey
+                {t.auth.register.subtitle}
               </p>
             </header>
 
             {/* Error banner */}
             {errorMessage && (
-              <div className="text-sm font-semibold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100 text-center">
+              <div className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800/30 text-center">
                 {errorMessage}
               </div>
             )}
@@ -92,13 +90,13 @@ export function RegisterScreen() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
-                  label="First Name"
+                  label={t.auth.register.firstNameLabel}
                   placeholder="Elena"
                   value={formData.firstName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('firstName', e.target.value)}
                 />
                 <Input
-                  label="Last Name"
+                  label={t.auth.register.lastNameLabel}
                   placeholder="Vance"
                   value={formData.lastName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('lastName', e.target.value)}
@@ -106,7 +104,7 @@ export function RegisterScreen() {
               </div>
 
               <Input
-                label="Email"
+                label={t.auth.register.emailLabel}
                 type="email"
                 placeholder="curator@comet.io"
                 value={formData.email}
@@ -115,13 +113,13 @@ export function RegisterScreen() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
-                  label="City"
+                  label={t.auth.register.cityLabel}
                   placeholder="New York"
                   value={formData.city}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('city', e.target.value)}
                 />
                 <Input
-                  label="Country"
+                  label={t.auth.register.countryLabel}
                   placeholder="United States"
                   value={formData.country}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('country', e.target.value)}
@@ -130,20 +128,20 @@ export function RegisterScreen() {
 
               <div className="space-y-1">
                 <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant px-1">
-                  Gender
+                  {t.auth.register.genderLabel}
                 </label>
                 <select
                   value={formData.gender}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleChange('gender', e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-outline-variant/30 bg-white/50 text-on-surface font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all appearance-none cursor-pointer"
+                  className="w-full h-12 px-4 rounded-xl border border-outline-variant/30 dark:border-outline-variant/20 bg-surface-container-low dark:bg-surface-container-high/50 text-on-surface font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all appearance-none cursor-pointer"
                 >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
+                  <option value="MALE">{t.auth.register.genderMale}</option>
+                  <option value="FEMALE">{t.auth.register.genderFemale}</option>
                 </select>
               </div>
 
               <Input
-                label="Password"
+                label={t.auth.register.passwordLabel}
                 type="password"
                 placeholder="••••••••"
                 value={formData.password}
@@ -163,14 +161,14 @@ export function RegisterScreen() {
                   isPending ? 'opacity-70 cursor-not-allowed' : '',
                 ].join(' ')}
               >
-                {isPending ? 'Creating Account...' : 'Create Account'}
+                {isPending ? t.auth.register.submitting : t.auth.register.submit}
               </button>
             </form>
 
             <p className="text-center text-[0.875rem] text-on-surface-variant">
-              Already have an account?{' '}
+              {t.auth.register.haveAccount}{' '}
               <a href="/login" className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all">
-                Sign In
+                {t.auth.register.signInLink}
               </a>
             </p>
           </div>

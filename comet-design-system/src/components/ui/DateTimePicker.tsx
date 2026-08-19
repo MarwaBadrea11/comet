@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
+import { APP_TIME_ZONE, zonedTimeToUtc, getDatePartsInZone } from '../../lib/timezone'
 
 interface DateTimePickerProps {
   value?: Date
@@ -20,16 +21,10 @@ export function DateTimePicker({
 
   useEffect(() => {
     if (value) {
-      // Format date as YYYY-MM-DD
-      const year = value.getFullYear()
-      const month = String(value.getMonth() + 1).padStart(2, '0')
-      const day = String(value.getDate()).padStart(2, '0')
-      setDateStr(`${year}-${month}-${day}`)
-
-      // Format time as HH:MM
-      const hours = String(value.getHours()).padStart(2, '0')
-      const minutes = String(value.getMinutes()).padStart(2, '0')
-      setTimeStr(`${hours}:${minutes}`)
+      // Display the picked instant as Damascus wall-clock time, not the device's local time.
+      const parts = getDatePartsInZone(value, APP_TIME_ZONE)
+      setDateStr(`${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`)
+      setTimeStr(`${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`)
     }
   }, [value])
 
@@ -54,7 +49,8 @@ export function DateTimePicker({
     const [year, month, day] = date.split('-').map(Number)
     const [hours, minutes] = time.split(':').map(Number)
 
-    const newDate = new Date(year, month - 1, day, hours, minutes)
+    // The picker's date/time inputs are always wall-clock Damascus time.
+    const newDate = zonedTimeToUtc(year, month, day, hours, minutes, APP_TIME_ZONE)
 
     // Check if the date is valid and not in the past
     if (newDate.getTime() < minDate.getTime()) {
@@ -70,12 +66,10 @@ export function DateTimePicker({
     onChange(undefined)
   }
 
-  // Get min date string for date input
+  // Get min date string for date input, expressed in Damascus's current date.
   const getMinDateStr = () => {
-    const year = minDate.getFullYear()
-    const month = String(minDate.getMonth() + 1).padStart(2, '0')
-    const day = String(minDate.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    const parts = getDatePartsInZone(minDate, APP_TIME_ZONE)
+    return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
   }
 
   return (
@@ -114,7 +108,7 @@ export function DateTimePicker({
       </div>
       {value && (
         <p className="text-xs text-on-surface-variant">
-          Scheduled for: {value.toLocaleString()}
+          Scheduled for: {value.toLocaleString('en-US', { timeZone: APP_TIME_ZONE, dateStyle: 'medium', timeStyle: 'short' })} (Damascus time)
         </p>
       )}
     </div>

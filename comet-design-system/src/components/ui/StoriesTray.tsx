@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useAvatarUrl } from './UserAvatar'
 import { useStoriesFeed } from '../../hooks/useStoriesQuery'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface StoryRingAvatarProps {
   name?: string
@@ -32,6 +33,7 @@ interface StoriesTrayProps {
 }
 
 export function StoriesTray({ onCreateStory }: StoriesTrayProps) {
+  const t = useTranslation()
   const navigate = useNavigate()
   const { data: storyGroups = [], isLoading, isError } = useStoriesFeed()
 
@@ -58,7 +60,7 @@ export function StoriesTray({ onCreateStory }: StoriesTrayProps) {
           </div>
         </div>
         <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-1.5">
-          Add Story
+          {t.home.addStory}
         </span>
       </div>
 
@@ -83,7 +85,7 @@ export function StoriesTray({ onCreateStory }: StoriesTrayProps) {
             />
           </div>
           <span className="text-[11px] md:text-xs font-bold text-on-surface mt-1.5 max-w-[65px] md:max-w-[80px] truncate">
-            {group.user.name || 'Anonymous'}
+            {group.user.name || t.storiesScreen.anonymous}
           </span>
         </div>
       ))}

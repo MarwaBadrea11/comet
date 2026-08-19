@@ -11,6 +11,7 @@ import { useUploadMedia } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../stores/authStore'
 import type { Conversation, MessageItem } from '../../services/messages'
 import { CreateGroupChatModal } from './CreateGroupChatModal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 // A conversation's other participant(s) only carry avatarMediaId (no nested
 // avatarMedia object) — resolve the real URL so map() stays rules-of-hooks safe.
@@ -49,6 +50,7 @@ function MessageBubble({ message, isMe, showAvatar }: { message: MessageItem; is
 }
 
 function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conversation; onClose: () => void; onLeft: () => void }) {
+  const t = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const currentUserIsAdmin = conversation.myParticipantRole === 'ADMIN'
   const [confirmLeave, setConfirmLeave] = useState(false)
@@ -67,8 +69,8 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
     addParticipant.mutate(
       { conversationId: conversation.id, userId },
       {
-        onSuccess: () => toast.success('Member added'),
-        onError: () => toast.error('Failed to add member. Please try again.'),
+        onSuccess: () => toast.success(t.messages.memberAdded),
+        onError: () => toast.error(t.messages.addMemberFailed),
       },
     )
   }
@@ -76,10 +78,10 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
   const handleLeave = () => {
     leaveConversation.mutate(conversation.id, {
       onSuccess: () => {
-        toast.success('You left the group')
+        toast.success(t.messages.leftGroup)
         onLeft()
       },
-      onError: () => toast.error('Failed to leave group. Please try again.'),
+      onError: () => toast.error(t.messages.leaveFailed),
     })
   }
 
@@ -88,10 +90,10 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
       { conversationId: conversation.id, userId },
       {
         onSuccess: () => {
-          toast.success('Member removed')
+          toast.success(t.messages.memberRemoved)
           setConfirmRemoveId(null)
         },
-        onError: () => toast.error('Failed to remove member. Please try again.'),
+        onError: () => toast.error(t.messages.removeFailed),
       },
     )
   }
@@ -114,7 +116,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
         >
           {/* Header */}
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 shrink-0">
-            <h2 className="font-headline text-lg font-bold text-on-surface">Group Info</h2>
+            <h2 className="font-headline text-lg font-bold text-on-surface">{t.messages.groupInfo}</h2>
             <button 
               onClick={onClose} 
               className="p-2 hover:bg-surface rounded-full transition-colors"
@@ -140,7 +142,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
               )}
               <div className="text-center">
                 <h3 className="text-xl font-bold text-on-surface mb-1">
-                  {conversation.name ?? 'Unnamed Group'}
+                  {conversation.name ?? t.messages.unnamedGroup}
                 </h3>
                 {conversation.description && (
                   <p className="text-sm text-on-surface-variant">
@@ -148,7 +150,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                   </p>
                 )}
                 <p className="text-xs text-on-surface-variant/60 mt-2">
-                  {conversation.participants?.length ?? 0} members
+                  {conversation.participants?.length ?? 0} {t.messages.members}
                 </p>
               </div>
             </div>
@@ -157,7 +159,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  Members
+                  {t.messages.membersHeader}
                 </h4>
                 {currentUserIsAdmin && (
                   <button
@@ -165,7 +167,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                     className={`flex items-center gap-1 text-xs font-bold transition-colors ${showAddMember ? 'text-error' : 'text-primary'}`}
                   >
                     {showAddMember ? <X size={13} /> : <UserPlus size={13} />}
-                    {showAddMember ? 'Close' : 'Add'}
+                    {showAddMember ? t.common.close : t.common.add}
                   </button>
                 )}
               </div>
@@ -174,7 +176,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                 <div className="mb-4 p-3 bg-surface-container-low rounded-2xl max-h-52 overflow-y-auto space-y-1">
                   {addableFriends.length === 0 ? (
                     <p className="text-xs text-on-surface-variant text-center py-4">
-                      All your friends are already in this group.
+                      {t.messages.allFriendsInGroup}
                     </p>
                   ) : (
                     addableFriends.map((f) => (
@@ -186,7 +188,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                           disabled={addParticipant.isPending}
                           className="text-xs font-bold text-primary px-2.5 py-1 rounded-lg hover:bg-primary/10 disabled:opacity-50 shrink-0"
                         >
-                          Add
+                          {t.common.add}
                         </button>
                       </div>
                     ))
@@ -213,7 +215,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-on-surface truncate">
                             {participant.user.name}
-                            {isCurrentUser && <span className="text-on-surface-variant ml-1">(You)</span>}
+                            {isCurrentUser && <span className="text-on-surface-variant ml-1">{t.messages.you}</span>}
                           </p>
                           {isAdmin && (
                             <Crown size={14} className="text-[#FFD700] shrink-0" />
@@ -228,7 +230,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                       <div className="flex items-center gap-2 shrink-0">
                         {isAdmin && (
                           <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
-                            Admin
+                            {t.messages.admin}
                           </span>
                         )}
                         {/* Admins can remove any other member — backend rejects self-removal via this route (use Leave instead). */}
@@ -240,13 +242,13 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                                 disabled={removeParticipant.isPending}
                                 className="text-[10px] font-bold text-white bg-error px-2 py-1 rounded-lg hover:opacity-90 disabled:opacity-50"
                               >
-                                {removeParticipant.isPending ? '…' : 'Confirm'}
+                                {removeParticipant.isPending ? '…' : t.common.confirm}
                               </button>
                               <button
                                 onClick={() => setConfirmRemoveId(null)}
                                 className="text-[10px] font-bold text-on-surface-variant px-1.5"
                               >
-                                Cancel
+                                {t.common.cancel}
                               </button>
                             </div>
                           ) : (
@@ -277,13 +279,13 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                   className="flex-1 h-11 rounded-xl bg-error text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {leaveConversation.isPending ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-                  Confirm Leave
+                  {t.messages.confirmLeave}
                 </button>
                 <button
                   onClick={() => setConfirmLeave(false)}
                   className="h-11 px-4 rounded-xl text-on-surface-variant font-bold hover:bg-surface-container-low transition-colors"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
               </div>
             ) : (
@@ -292,7 +294,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
                 className="w-full h-11 rounded-xl border border-error/30 text-error font-bold flex items-center justify-center gap-2 hover:bg-error/5 transition-colors"
               >
                 <LogOut size={16} />
-                Leave Group
+                {t.messages.leaveGroup}
               </button>
             )}
           </div>
@@ -303,6 +305,7 @@ function GroupInfoModal({ conversation, onClose, onLeft }: { conversation: Conve
 }
 
 function NewConversationModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslation()
   const { data: friends = [], isLoading } = useMyFriends()
   const createConversation = useCreateConversation()
   const [selected, setSelected] = useState<string[]>([])
@@ -322,8 +325,8 @@ function NewConversationModal({ onClose }: { onClose: () => void }) {
         name: isGroup ? (groupName.trim() || undefined) : undefined,
       },
       {
-        onSuccess: () => { toast.success(isGroup ? 'Group created!' : 'Conversation started!'); onClose() },
-        onError: () => toast.error('Failed to start conversation. Please try again.'),
+        onSuccess: () => { toast.success(isGroup ? t.messages.groupCreated : t.messages.conversationStarted); onClose() },
+        onError: () => toast.error(t.messages.startConversationFailed),
       },
     )
   }
@@ -334,20 +337,20 @@ function NewConversationModal({ onClose }: { onClose: () => void }) {
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
         <div className="bg-surface-container-lowest w-full max-w-sm rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[80vh]">
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10">
-            <h2 className="font-headline text-lg font-bold text-on-surface">New Message</h2>
+            <h2 className="font-headline text-lg font-bold text-on-surface">{t.messages.newMessage}</h2>
             <button onClick={onClose} className="p-1 hover:bg-surface rounded-full"><X size={18} /></button>
           </div>
 
           {isGroup && (
             <div className="px-6 pt-4">
-              <Input placeholder="Group name (optional)" value={groupName} onChange={e => setGroupName(e.target.value)} />
+              <Input placeholder={t.messages.groupNamePlaceholder} value={groupName} onChange={e => setGroupName(e.target.value)} />
             </div>
           )}
 
           <div className="flex-1 overflow-y-auto px-3 py-3">
             {isLoading && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>}
             {!isLoading && friends.length === 0 && (
-              <p className="text-center text-sm text-on-surface-variant py-8">No friends yet to message.</p>
+              <p className="text-center text-sm text-on-surface-variant py-8">{t.messages.noFriendsToMessage}</p>
             )}
             {friends.map(f => {
               const checked = selected.includes(f.id)
@@ -374,7 +377,7 @@ function NewConversationModal({ onClose }: { onClose: () => void }) {
               className="w-full h-11 rounded-xl bg-primary text-white font-bold disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {createConversation.isPending ? <Loader2 size={16} className="animate-spin" /> : (isGroup ? <Users size={16} /> : <Send size={16} />)}
-              {isGroup ? 'Create Group' : 'Start Conversation'}
+              {isGroup ? t.messages.createGroup : t.messages.startConversationBtn}
             </button>
           </div>
         </div>
@@ -384,6 +387,7 @@ function NewConversationModal({ onClose }: { onClose: () => void }) {
 }
 
 export function MessagesScreen() {
+  const t = useTranslation()
   const user = useAuthStore(s => s.user)
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null)
@@ -463,7 +467,7 @@ export function MessagesScreen() {
         const media = await uploadMedia.mutateAsync(pendingImage.file)
         mediaIds = [media.id]
       } catch {
-        toast.error('Failed to upload image. Please try again.')
+        toast.error(t.messages.uploadImageFailed)
         return
       }
     }
@@ -477,7 +481,7 @@ export function MessagesScreen() {
           if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl)
           setPendingImage(null)
         },
-        onError: () => toast.error('Failed to send message.'),
+        onError: () => toast.error(t.messages.sendFailed),
       },
     )
   }
@@ -489,7 +493,7 @@ export function MessagesScreen() {
       <section className={`flex flex-col bg-surface border-r border-outline-variant/15 w-full sm:w-80 lg:w-96 shrink-0 ${showChat ? 'hidden sm:flex' : 'flex'}`}>
         <div className="p-5 lg:p-8 pb-3 lg:pb-4">
           <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <h1 className="text-xl lg:text-2xl font-extrabold font-headline text-on-surface tracking-tight">Messages</h1>
+            <h1 className="text-xl lg:text-2xl font-extrabold font-headline text-on-surface tracking-tight">{t.messages.title}</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCreateGroup(true)}
@@ -497,7 +501,7 @@ export function MessagesScreen() {
                 aria-label="Create group"
               >
                 <Users size={16} />
-                <span className="hidden sm:inline">Group</span>
+                <span className="hidden sm:inline">{t.messages.group}</span>
               </button>
               <button
                 onClick={() => setShowNewConv(true)}
@@ -515,15 +519,15 @@ export function MessagesScreen() {
 
           {convError && (
             <div className="p-4 text-center text-sm text-red-500 font-medium">
-              Could not load conversations.
-              <button onClick={() => refetch()} className="block mx-auto mt-1 text-xs text-primary underline">Retry</button>
+              {t.messages.loadError}
+              <button onClick={() => refetch()} className="block mx-auto mt-1 text-xs text-primary underline">{t.common.retry}</button>
             </div>
           )}
 
           {!loadingConvs && !convError && conversations.length === 0 && (
             <div className="text-center py-12 px-4">
-              <p className="text-sm text-on-surface-variant mb-3">No conversations yet.</p>
-              <button onClick={() => setShowNewConv(true)} className="text-sm font-bold text-primary">Start a conversation</button>
+              <p className="text-sm text-on-surface-variant mb-3">{t.messages.noConversations}</p>
+              <button onClick={() => setShowNewConv(true)} className="text-sm font-bold text-primary">{t.messages.startConversation}</button>
             </div>
           )}
 
@@ -531,7 +535,7 @@ export function MessagesScreen() {
             const name    = convName(c)
             const other   = otherParticipant(c)
             const isActive = c.id === activeConvId
-            const lastMsg = c.lastMessage?.content ?? (c.lastMessage?.attachments?.length ? '📷 Photo' : 'No messages yet')
+            const lastMsg = c.lastMessage?.content ?? (c.lastMessage?.attachments?.length ? t.messages.photoPreview : t.messages.noMessagesPreview)
             const unread  = c.unreadCount ?? 0
 
             return (
@@ -575,7 +579,7 @@ export function MessagesScreen() {
       <section className={`flex-1 bg-surface-container-low flex flex-col relative min-w-0 ${showChat ? 'flex' : 'hidden sm:flex'}`}>
         {!activeConv ? (
           <div className="flex-1 flex items-center justify-center text-on-surface-variant">
-            <p className="text-sm font-medium">Select a conversation to start messaging.</p>
+            <p className="text-sm font-medium">{t.messages.selectConversation}</p>
           </div>
         ) : (
           <>
@@ -600,7 +604,7 @@ export function MessagesScreen() {
                     <div className="text-left flex-1 min-w-0">
                       <h2 className="font-headline font-bold text-on-surface text-sm lg:text-base truncate">{convName(activeConv)}</h2>
                       <span className="text-[10px] text-on-surface-variant/60">
-                        {activeConv.participants?.length ?? 0} members
+                        {activeConv.participants?.length ?? 0} {t.messages.members}
                       </span>
                     </div>
                   </button>
@@ -613,7 +617,7 @@ export function MessagesScreen() {
                     )}
                     <div>
                       <h2 className="font-headline font-bold text-on-surface text-sm lg:text-base">{convName(activeConv)}</h2>
-                      <span className="text-[10px] text-on-surface-variant/60">Direct message</span>
+                      <span className="text-[10px] text-on-surface-variant/60">{t.messages.directMessage}</span>
                     </div>
                   </>
                 )}
@@ -629,7 +633,7 @@ export function MessagesScreen() {
             <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex flex-col gap-3 lg:gap-4">
               {loadingMsgs && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>}
               {!loadingMsgs && messages.length === 0 && (
-                <div className="text-center py-12 text-on-surface-variant text-sm">No messages yet. Say hello!</div>
+                <div className="text-center py-12 text-on-surface-variant text-sm">{t.messages.noMessagesYet}</div>
               )}
               {messages.map((m, i) => {
                 const isMe = String(m.senderId) === String(user?.id)
@@ -670,7 +674,7 @@ export function MessagesScreen() {
                   onChange={e => setMsg(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e as any) } }}
                   className="flex-1 bg-transparent border-none focus:ring-0 py-2 text-sm resize-none max-h-28 outline-none"
-                  placeholder="Type your celestial message..."
+                  placeholder={t.messages.typeMessage}
                   rows={1}
                 />
                 <button type="submit" disabled={sendMessage.isPending || uploadMedia.isPending || (!msg.trim() && !pendingImage)} className="w-10 h-10 bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white flex items-center justify-center rounded-full shadow-md hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50">

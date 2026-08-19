@@ -13,6 +13,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useMyProfile } from '../../hooks/useUserQuery'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   open: boolean
@@ -22,18 +23,19 @@ interface Props {
   onSuccess?: () => void
 }
 
-const VISIBILITY_OPTIONS = [
-  { value: 'PUBLIC' as const, label: 'Universal', description: 'Visible to every curator in the galaxy.', icon: <Globe size={18} /> },
-  { value: 'FRIENDS' as const, label: 'Inner Circle', description: 'Only shared with your trusted satellite groups.', icon: <Users size={18} /> },
-  { value: 'ONLY_ME' as const, label: 'Private Drift', description: 'Stored in your personal archive only.', icon: <Lock size={18} /> },
-]
-
-type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
+type Visibility = 'PUBLIC' | 'FRIENDS' | 'ONLY_ME'
 
 export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) {
+  const t = useTranslation()
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
   const { data: profile } = useMyProfile()
+
+  const VISIBILITY_OPTIONS = [
+    { value: 'PUBLIC' as const, label: t.createPost.visibilityUniversal, description: t.createPost.visibilityUniversalDesc, icon: <Globe size={18} /> },
+    { value: 'FRIENDS' as const, label: t.createPost.visibilityInnerCircle, description: t.createPost.visibilityInnerCircleDesc, icon: <Users size={18} /> },
+    { value: 'ONLY_ME' as const, label: t.createPost.visibilityPrivate, description: t.createPost.visibilityPrivateDesc, icon: <Lock size={18} /> },
+  ]
 
   // Get current user's avatar with proper fallback
   const userAvatarUrl = profile?.avatar || user?.avatar
@@ -169,15 +171,15 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
         // Store ONLY the media IDs returned from the server, NOT preview URLs
         setMediaIds(prev => [...prev, ...uploadedIds])
         setUploadedFiles(prev => [...prev, ...newUploadedFiles])
-        toast.success(`${uploadedIds.length} file(s) uploaded successfully`)
+        toast.success(`${uploadedIds.length} ${t.createPost.filesUploaded}`)
         console.log('✅ All files uploaded. Media IDs:', uploadedIds)
       } else {
         console.warn('⚠️ No files were uploaded successfully')
       }
     } catch (err) {
       console.error('❌ Upload process error:', err)
-      toast.error('Upload failed. Please try again.')
-      setUploadError('Upload failed. Please check your connection and try again.')
+      toast.error(t.createPost.uploadFailedGeneric)
+      setUploadError(t.createPost.uploadFailedGeneric)
     } finally {
       setIsUploading(false)
     }
@@ -185,7 +187,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
 
   const handlePost = () => {
     if (!content.trim() && mediaIds.length === 0) {
-      toast.warning('Please add some content or media before posting')
+      toast.warning(t.createPost.needContentWarning)
       return
     }
     const pendingText = content.trim()
@@ -215,7 +217,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
         },
         {
           onSuccess: () => {
-            toast.success('Post scheduled successfully!')
+            toast.success(t.createPost.postScheduled)
             setContent('')
             setMediaIds([])
             setUploadedFiles([]) // Clear uploaded files
@@ -230,9 +232,9 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
           },
           onError: (err: any) => {
             if (err.response?.status === 400) {
-              toast.error('Invalid scheduled date or content')
+              toast.error(t.createPost.invalidScheduledData)
             } else {
-              toast.error('Failed to schedule post. Please try again.')
+              toast.error(t.createPost.scheduleFailed)
             }
           }
         }
@@ -275,7 +277,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
             // 📢 إطلاق الإشارة الكونية لكي تقوم شاشة الهوم فيد بتحديث نفسها فوراً
             window.dispatchEvent(new Event('comet_posts_updated'))
 
-            toast.success('Post created successfully!')
+            toast.success(t.createPost.postCreated)
             setContent('')
             setMediaIds([])
             setUploadedFiles([]) // Clear uploaded files
@@ -300,11 +302,11 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
             if (status === 400) {
               toast.error(`Invalid post data: ${message}`)
             } else if (status === 401) {
-              toast.error('Session expired. Please login again.')
+              toast.error(t.createPost.sessionExpired)
             } else if (status === 413) {
-              toast.error('Post content or media is too large')
+              toast.error(t.createPost.postTooLarge)
             } else if (status === 500) {
-              toast.error('Server error. Please try again later.')
+              toast.error(t.createPost.serverError)
             } else {
               toast.error(`Failed to create post: ${message || 'Unknown error'}`)
             }
@@ -361,7 +363,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
           <motion.div {...motionVariants.scaleIn} className="fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8">
             <div className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-[2rem] flex flex-col overflow-visible border border-outline-variant/15">
               <div className="px-10 py-8 flex items-center justify-between border-b border-outline-variant/10">
-                <h2 className="font-headline text-2xl font-bold text-on-surface">New Cosmic Thread</h2>
+                <h2 className="font-headline text-2xl font-bold text-on-surface">{t.createPost.title}</h2>
                 <button onClick={onClose}><X size={20} /></button>
               </div>
 
@@ -370,7 +372,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
                   value={content}
                   onChange={e => setContent(e.target.value)}
                   className="w-full h-32 bg-transparent border-none resize-none focus:ring-0 text-lg p-4"
-                  placeholder="What's happening in your corner of the universe?"
+                  placeholder={t.createPost.placeholder}
                 />
                 
                 {/* Upload Error Banner */}
@@ -429,7 +431,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
                       scheduledDate ? 'bg-primary/10 text-primary font-medium' : 'text-on-surface-variant hover:bg-surface'
                     }`}
                   >
-                    <Clock size={20} /> {scheduledDate ? 'Scheduled' : 'Schedule'}
+                    <Clock size={20} /> {scheduledDate ? t.createPost.scheduled : t.createPost.schedule}
                   </button>
 
                   {showEmojiPicker && (
@@ -442,7 +444,7 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
                 {/* Visibility Picker */}
                 {showVisibilityPicker && (
                   <div className="mt-6 p-4 bg-surface-container rounded-xl border border-outline-variant/15">
-                    <h4 className="text-sm font-bold text-on-surface mb-4">Who can see this post?</h4>
+                    <h4 className="text-sm font-bold text-on-surface mb-4">{t.createPost.whoCanSee}</h4>
                     <SegmentedControlVertical
                       value={visibility}
                       onChange={(val) => setVisibility(val as Visibility)}
@@ -457,17 +459,17 @@ export function CreatePostModal({ open, onClose, onCreated, onSuccess }: Props) 
                     <DateTimePicker
                       value={scheduledDate}
                       onChange={setScheduledDate}
-                      label="Schedule Post"
-                      placeholder="Pick a future date and time"
+                      label={t.createPost.schedulePostLabel}
+                      placeholder={t.createPost.schedulePlaceholder}
                     />
                   </div>
                 )}
               </div>
 
               <div className="px-10 py-6 border-t flex justify-between">
-                <button onClick={onClose} className="text-on-surface-variant">Discard</button>
+                <button onClick={onClose} className="text-on-surface-variant">{t.createPost.discard}</button>
                 <Button onClick={handlePost} disabled={createPost.isPending || schedulePost.isPending || isUploading}>
-                  {createPost.isPending || schedulePost.isPending ? 'Launching...' : scheduledDate ? 'Schedule Post' : 'Post Now'}
+                  {createPost.isPending || schedulePost.isPending ? t.createPost.launching : scheduledDate ? t.createPost.schedulePostLabel : t.createPost.postNow}
                 </Button>
               </div>
             </div>

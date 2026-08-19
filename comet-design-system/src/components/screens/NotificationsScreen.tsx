@@ -6,6 +6,8 @@ import { Avatar } from '../ui/Avatar'
 import { useAvatarUrl } from '../ui/UserAvatar'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../hooks/useNotificationsQuery'
 import { categorizeNotification, type Notification, type NotificationCategory } from '../../services/notifications'
+import { useTranslation } from '../../hooks/useTranslation'
+import type { Translations } from '../../i18n/translations'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,32 +35,34 @@ function getIconBg(type: string) {
   }
 }
 
-function getMessage(item: Notification): string {
+function getMessage(item: Notification, t: Translations): string {
   switch (item.type) {
     case 'LIKE':
-      return item.entityType === 'COMMENT' ? 'reacted to your comment.' : 'reacted to your post.'
+      return item.entityType === 'COMMENT' ? t.notifications.reactedToComment : t.notifications.reactedToPost
     case 'COMMENT':
-      return 'commented on your post.'
+      return t.notifications.commentedOnPost
     case 'FRIEND_REQUEST':
-      return 'sent you a friend request.'
+      return t.notifications.sentFriendRequest
     case 'FRIEND_REQUEST_ACCEPTED':
-      return 'accepted your friend request.'
+      return t.notifications.acceptedFriendRequest
     case 'MENTION':
-      return 'mentioned you in a comment.'
+      return t.notifications.mentionedYou
     case 'MESSAGE':
-      return item.data?.preview ? `sent you a message: "${item.data.preview}"` : 'sent you a message.'
+      return item.data?.preview
+        ? t.notifications.sentMessageWithPreview.replace('{preview}', item.data.preview)
+        : t.notifications.sentMessage
     default:
-      return 'interacted with your content.'
+      return t.notifications.interacted
   }
 }
 
-function formatTime(d?: string) {
+function formatTime(d: string | undefined, t: Translations) {
   if (!d) return ''
   const diff = Date.now() - new Date(d).getTime()
   const m = Math.floor(diff / 60000), h = Math.floor(diff / 3600000), day = Math.floor(diff / 86400000)
-  if (m < 60) return `${m}m ago`
-  if (h < 24) return `${h}h ago`
-  return `${day}d ago`
+  if (m < 60) return t.notifications.minutesAgo.replace('{n}', String(m))
+  if (h < 24) return t.notifications.hoursAgo.replace('{n}', String(h))
+  return t.notifications.daysAgo.replace('{n}', String(day))
 }
 
 /** Where tapping a notification should take you. */
@@ -83,7 +87,8 @@ function getNotificationLink(item: Notification): string | null {
 // ── NotifItem ─────────────────────────────────────────────────────────────────
 
 function NotifItem({ item, onRead, onNavigate }: { item: Notification; onRead: (id: string) => void; onNavigate: (link: string) => void }) {
-  const actorName = item.actor?.name ?? 'Someone'
+  const t = useTranslation()
+  const actorName = item.actor?.name ?? t.notifications.someone
   const avatarSrc = useAvatarUrl({ name: actorName, avatarMediaId: item.actor?.avatarMediaId })
   const link = getNotificationLink(item)
 
@@ -108,9 +113,9 @@ function NotifItem({ item, onRead, onNavigate }: { item: Notification; onRead: (
 
       <div className="flex-grow min-w-0">
         <p className="text-on-surface text-sm leading-relaxed">
-          <strong>{actorName}</strong> {getMessage(item)}
+          <strong>{actorName}</strong> {getMessage(item, t)}
         </p>
-        <span className="text-xs text-on-surface-variant/60 mt-1 block">{formatTime(item.createdAt)}</span>
+        <span className="text-xs text-on-surface-variant/60 mt-1 block">{formatTime(item.createdAt, t)}</span>
       </div>
 
       {!item.isRead && (
@@ -128,14 +133,15 @@ function NotifItem({ item, onRead, onNavigate }: { item: Notification; onRead: (
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
-const TABS: Array<{ id: NotificationCategory; label: string; description: string }> = [
-  { id: 'direct', label: 'Direct', description: 'Friend requests, mentions & messages' },
-  { id: 'activity', label: 'Activity', description: 'Likes & comments on your posts' },
-]
-
 export function NotificationsScreen() {
+  const t = useTranslation()
   const navigate = useNavigate()
   const [tab, setTab] = useState<NotificationCategory>('direct')
+
+  const TABS: Array<{ id: NotificationCategory; label: string; description: string }> = [
+    { id: 'direct', label: t.notifications.tabDirect, description: t.notifications.tabDirectDesc },
+    { id: 'activity', label: t.notifications.tabActivity, description: t.notifications.tabActivityDesc },
+  ]
   const { data: notifications = [], isLoading, isError, refetch } = useNotifications()
   const markRead    = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
@@ -160,8 +166,8 @@ export function NotificationsScreen() {
 
         <div className="flex justify-between items-end mb-8">
           <div>
-            <h1 className="font-headline text-3xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">Notifications</h1>
-            <p className="text-on-surface-variant text-base md:text-lg">Your cosmic interactions and updates.</p>
+            <h1 className="font-headline text-3xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2">{t.notifications.title}</h1>
+            <p className="text-on-surface-variant text-base md:text-lg">{t.notifications.subtitle}</p>
           </div>
           {hasUnread && (
             <button
@@ -170,24 +176,24 @@ export function NotificationsScreen() {
               className="text-primary font-semibold py-2 px-4 hover:bg-surface-container-low rounded-xl transition-all flex items-center gap-2 text-sm disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">done_all</span>
-              Mark all read
+              {t.notifications.markAllRead}
             </button>
           )}
         </div>
 
         {/* Category tabs */}
         <div className="flex gap-2 mb-10 p-1 bg-surface-container-low rounded-2xl border border-outline-variant/15 w-fit">
-          {TABS.map(t => {
-            const count = grouped[t.id].filter(n => !n.isRead).length
+          {TABS.map(tabDef => {
+            const count = grouped[tabDef.id].filter(n => !n.isRead).length
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={tabDef.id}
+                onClick={() => setTab(tabDef.id)}
                 className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  tab === t.id ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                  tab === tabDef.id ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                {t.label}
+                {tabDef.label}
                 {count > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-primary text-white">
                     {count}
@@ -197,28 +203,28 @@ export function NotificationsScreen() {
             )
           })}
         </div>
-        <p className="text-xs text-on-surface-variant/60 -mt-8 mb-8">{TABS.find(t => t.id === tab)?.description}</p>
+        <p className="text-xs text-on-surface-variant/60 -mt-8 mb-8">{TABS.find(tabDef => tabDef.id === tab)?.description}</p>
 
         {isLoading && <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>}
 
         {isError && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-center text-sm text-red-500 font-semibold mb-6">
-            Could not load notifications.
-            <button onClick={() => refetch()} className="block mx-auto mt-1 text-xs text-primary underline">Retry</button>
+            {t.notifications.loadError}
+            <button onClick={() => refetch()} className="block mx-auto mt-1 text-xs text-primary underline">{t.common.retry}</button>
           </div>
         )}
 
         {!isLoading && !isError && visible.length === 0 && (
           <div className="text-center py-20">
             <Bell className="w-16 h-16 text-primary/20 mx-auto mb-4" />
-            <p className="text-on-surface-variant font-medium">You're all caught up!</p>
+            <p className="text-on-surface-variant font-medium">{t.notifications.allCaughtUp}</p>
           </div>
         )}
 
         {!isLoading && today.length > 0 && (
           <section className="mb-12 md:mb-16">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Today</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{t.notifications.today}</span>
               <div className="h-px flex-grow bg-outline-variant/15" />
             </div>
             <div className="flex flex-col gap-4">
@@ -230,7 +236,7 @@ export function NotificationsScreen() {
         {!isLoading && older.length > 0 && (
           <section>
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Earlier</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{t.notifications.earlier}</span>
               <div className="h-px flex-grow bg-outline-variant/15" />
             </div>
             <div className="flex flex-col gap-4">

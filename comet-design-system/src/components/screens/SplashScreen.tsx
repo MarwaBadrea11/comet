@@ -10,9 +10,9 @@ export function SplashScreen() {
 
   return (
     <div className="min-h-screen bg-surface overflow-hidden flex flex-col relative">
-      {/* Ambient orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full blur-[120px] bg-primary/10 pointer-events-none" />
-      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[100px] bg-[#00D4FF]/10 pointer-events-none" />
+      {/* Ambient orbs - enhanced for dark mode */}
+      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full blur-[120px] bg-primary/10 dark:bg-primary/20 pointer-events-none" />
+      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[100px] bg-[#00D4FF]/10 dark:bg-[#00D4FF]/20 pointer-events-none" />
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-12 py-8 z-10">
@@ -28,12 +28,12 @@ export function SplashScreen() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center relative px-6">
-        {/* Floating card left */}
+        {/* Floating card left - Top Curator */}
         <motion.div
           initial={{ opacity: 0, x: -40, rotate: -3 }}
           animate={{ opacity: 1, x: 0, rotate: -3 }}
           transition={{ delay: 0.6, duration: 0.8 }}
-          className="absolute top-[15%] left-[10%] w-64 p-6 bg-white/70 backdrop-blur-2xl rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] border border-white/20 hidden lg:block"
+          className="absolute top-[15%] left-[10%] w-64 p-6 bg-surface-container-lowest/90 dark:bg-surface-container-low/90 backdrop-blur-2xl rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-outline-variant/10 dark:border-outline-variant/5 hidden lg:block"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden">
@@ -47,16 +47,16 @@ export function SplashScreen() {
           <div className="h-24 w-full rounded-xl bg-gradient-to-br from-primary/20 to-[#00D4FF]/20" />
         </motion.div>
 
-        {/* Floating card right */}
+        {/* Floating card right - Trending Now */}
         <motion.div
           initial={{ opacity: 0, x: 40, rotate: 2 }}
           animate={{ opacity: 1, x: 0, rotate: 2 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="absolute bottom-[20%] right-[10%] w-72 p-6 bg-white/70 backdrop-blur-2xl rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] border border-white/20 hidden lg:block"
+          className="absolute bottom-[20%] right-[10%] w-72 p-6 bg-surface-container-lowest/90 dark:bg-surface-container-low/90 backdrop-blur-2xl rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-outline-variant/10 dark:border-outline-variant/5 hidden lg:block"
         >
           <div className="flex justify-between items-center mb-4">
-            <span className="material-symbols-outlined text-[#00677e]">auto_awesome</span>
-            <span className="text-[10px] font-label font-bold text-[#00677e] uppercase tracking-widest">Trending Now</span>
+            <span className="material-symbols-outlined text-secondary dark:text-secondary">auto_awesome</span>
+            <span className="text-[10px] font-label font-bold text-secondary dark:text-secondary uppercase tracking-widest">Trending Now</span>
           </div>
           <h3 className="font-headline font-bold text-on-surface text-lg leading-tight mb-2">The Digital Renaissance</h3>
           <p className="text-sm text-on-surface-variant leading-relaxed">Exploring the intersection of human touch and AI precision.</p>
@@ -91,7 +91,7 @@ export function SplashScreen() {
       </main>
 
       {/* Footer */}
-      <footer className="px-12 py-8 border-t border-outline/5 bg-white/30 backdrop-blur-sm">
+      <footer className="px-12 py-8 border-t border-outline/5 dark:border-outline/10 bg-surface-container-lowest/30 dark:bg-surface-container-low/20 backdrop-blur-sm">
       </footer>
     </div>
   )

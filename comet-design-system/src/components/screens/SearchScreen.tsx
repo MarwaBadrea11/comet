@@ -6,8 +6,10 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Avatar } from '../ui/Avatar'
 import { useGlobalSearch, useSaveSearch, useSearchHistory, useDeleteHistoryItem, useClearAllHistory } from '../../hooks/useSearchQuery'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export function SearchScreen() {
+  const t = useTranslation()
   const navigate = useNavigate()
   const [emailInput, setEmailInput] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
@@ -51,11 +53,11 @@ export function SearchScreen() {
           <div className="flex items-center gap-3 mb-4">
             <Mail className="text-primary w-6 h-6" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-on-surface">
-              Search User by Email
+              {t.search.title}
             </h1>
           </div>
           <p className="text-sm text-on-surface-variant/70 mb-6">
-            Enter an email address to find and view user profiles
+            {t.search.subtitle}
           </p>
 
           {/* Search Form */}
@@ -66,7 +68,7 @@ export function SearchScreen() {
                 type="email"
                 value={emailInput}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailInput(e.target.value)}
-                placeholder="user@example.com"
+                placeholder={t.search.placeholder}
                 className="w-full pl-14 pr-12 h-14 bg-surface-container-high/40 rounded-2xl border-none text-base focus-visible:ring-2 focus-visible:ring-primary/20 transition-all placeholder:text-on-surface-variant/40"
               />
               {isLoading && (
@@ -81,7 +83,7 @@ export function SearchScreen() {
               disabled={!emailInput.trim() || isLoading}
               className="h-14 px-8 rounded-2xl font-bold"
             >
-              Search
+              {t.search.search}
             </Button>
 
             {(emailInput || activeQuery) && (
@@ -92,7 +94,7 @@ export function SearchScreen() {
                 onClick={handleClearSearch}
                 className="h-14 px-6 rounded-2xl font-bold"
               >
-                Clear
+                {t.search.clear}
               </Button>
             )}
           </form>
@@ -101,13 +103,13 @@ export function SearchScreen() {
           {!activeQuery && history.length > 0 && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/60">Recent Searches</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/60">{t.search.recentSearches}</h3>
                 <button
                   onClick={() => clearAllHistory.mutate()}
                   disabled={clearAllHistory.isPending}
                   className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                 >
-                  <Trash2 size={12} /> Clear all
+                  <Trash2 size={12} /> {t.search.clearAll}
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -153,9 +155,9 @@ export function SearchScreen() {
           >
             <XCircle className="text-error w-6 h-6 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-lg font-bold text-error mb-1">Search Failed</h3>
+              <h3 className="text-lg font-bold text-error mb-1">{t.search.searchFailed}</h3>
               <p className="text-sm text-on-surface-variant">
-                {error instanceof Error ? error.message : 'Unable to search for user. Please try again.'}
+                {error instanceof Error ? error.message : t.search.searchFailedGeneric}
               </p>
             </div>
           </motion.div>
@@ -169,10 +171,9 @@ export function SearchScreen() {
             className="bg-white/40 border border-white/20 rounded-2xl p-12 text-center"
           >
             <User className="w-16 h-16 text-on-surface-variant/30 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-on-surface mb-2">No User Found</h3>
+            <h3 className="text-xl font-bold text-on-surface mb-2">{t.search.noUserFound}</h3>
             <p className="text-sm text-on-surface-variant/70 max-w-md mx-auto">
-              We couldn't find a user matching <span className="font-semibold text-on-surface">"{activeQuery}"</span>.
-              Please check the email and try again.
+              {t.search.noUserFoundDesc.replace('{query}', activeQuery)}
             </p>
           </motion.div>
         )}
@@ -202,10 +203,10 @@ export function SearchScreen() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-2xl md:text-3xl font-headline font-bold text-on-surface">
-                      {foundUser.name || 'User Name'}
+                      {foundUser.name || t.search.userName}
                     </h2>
                     {foundUser.role === 'ADMIN' && (
-                      <CheckCircle className="text-primary w-6 h-6" aria-label="Verified" />
+                      <CheckCircle className="text-primary w-6 h-6" aria-label={t.search.verified} />
                     )}
                   </div>
                   {foundUser.username && (
@@ -226,7 +227,7 @@ export function SearchScreen() {
                     className="rounded-xl font-bold px-6"
                     onClick={() => navigate(`/profile/${foundUser.id}`)}
                   >
-                    View Profile
+                    {t.search.viewProfile}
                   </Button>
                 </div>
               </div>
@@ -246,7 +247,7 @@ export function SearchScreen() {
                     <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
-                        Role
+                        {t.search.role}
                       </p>
                       <p className="text-sm font-medium text-on-surface capitalize">
                         {foundUser.role.toLowerCase()}
@@ -261,7 +262,7 @@ export function SearchScreen() {
                     <Calendar className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
-                        Member Since
+                        {t.search.memberSince}
                       </p>
                       <p className="text-sm font-medium text-on-surface">
                         {new Date(foundUser.createdAt).toLocaleDateString('en-US', {
@@ -287,9 +288,9 @@ export function SearchScreen() {
             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Mail className="w-12 h-12 text-primary" />
             </div>
-            <h3 className="text-xl font-bold text-on-surface mb-2">Search for Users</h3>
+            <h3 className="text-xl font-bold text-on-surface mb-2">{t.search.searchForUsers}</h3>
             <p className="text-sm text-on-surface-variant/70 max-w-md mx-auto">
-              Enter an email address above to search for a user and view their profile information.
+              {t.search.searchForUsersDesc}
             </p>
           </motion.div>
         )}

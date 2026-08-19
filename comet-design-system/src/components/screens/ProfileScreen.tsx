@@ -11,11 +11,13 @@ import { useMe, useUpdateProfile, useUserById } from '../../hooks/useUserQuery'
 import { usePostsByUsername, useSavedPosts, useUnsavePost } from '../../hooks/usePostsQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { mediaService } from '../../services/media'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>()
   const navigate = useNavigate()
   const currentUser = useAuthStore(s => s.user)
+  const t = useTranslation()
 
   const [tab, setTab]               = useState('Portfolio')
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
@@ -37,6 +39,7 @@ export function ProfileScreen() {
   const updateProfile = useUpdateProfile()
 
   const TABS = isOwnProfile ? ['Portfolio', 'Saved'] : ['Portfolio']
+  const TAB_LABELS: Record<string, string> = { Portfolio: t.profile.tabPortfolio, Saved: t.profile.tabSaved }
   const galleryPosts = tab === 'Saved' ? savedPosts : posts
   const loadingGallery = tab === 'Saved' ? loadingSaved : loadingPosts
 
@@ -66,12 +69,12 @@ export function ProfileScreen() {
       updateProfile.mutate(
         { avatarMediaId: media.id },
         {
-          onSuccess: () => toast.success('Profile picture updated!'),
-          onError: () => toast.error('Failed to save profile picture. Please try again.'),
+          onSuccess: () => toast.success(t.profile.avatarUpdated),
+          onError: () => toast.error(t.profile.avatarUpdateFailed),
         },
       )
     } catch {
-      toast.error('Failed to upload image. Please try again.')
+      toast.error(t.profile.avatarUploadFailed)
     } finally {
       setIsUploadingAvatar(false)
     }
@@ -147,7 +150,7 @@ export function ProfileScreen() {
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
                 <span className="text-lg font-bold text-on-surface">{loadingPosts ? '…' : posts.length}</span>
-                <span className="text-sm text-on-surface-variant">Posts</span>
+                <span className="text-sm text-on-surface-variant">{t.profile.postsCount}</span>
               </div>
               {isOwnProfile ? (
                 <button
@@ -156,13 +159,13 @@ export function ProfileScreen() {
                 >
                   <Users className="w-5 h-5 text-primary" />
                   <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
-                  <span className="text-sm text-on-surface-variant">Friends</span>
+                  <span className="text-sm text-on-surface-variant">{t.profile.friendsCount}</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
                   <span className="text-lg font-bold text-on-surface">{profile?.friendsCount ?? 0}</span>
-                  <span className="text-sm text-on-surface-variant">Friends</span>
+                  <span className="text-sm text-on-surface-variant">{t.profile.friendsCount}</span>
                 </div>
               )}
             </div>
@@ -171,9 +174,9 @@ export function ProfileScreen() {
             {isOwnProfile ? (
               <>
                 <Button variant="primary" size="md" onClick={() => navigate('/profile/edit')}>
-                  Edit Profile
+                  {t.profile.editProfile}
                 </Button>
-                <Button variant="secondary" size="md">Share</Button>
+                <Button variant="secondary" size="md">{t.profile.share}</Button>
               </>
             ) : profile?.id ? (
               <UserActions userId={profile.id} />
@@ -186,9 +189,9 @@ export function ProfileScreen() {
           <div className="lg:col-span-12 pb-20">
             <div className="flex items-center justify-between mb-8 md:mb-12">
               <div className="flex gap-4 md:gap-8">
-                {TABS.map(t => (
-                  <button key={t} onClick={() => setTab(t)} className={`pb-2 font-bold transition-colors ${tab === t ? 'text-on-surface border-b-2 border-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
-                    {t}
+                {TABS.map(tabKey => (
+                  <button key={tabKey} onClick={() => setTab(tabKey)} className={`pb-2 font-bold transition-colors ${tab === tabKey ? 'text-on-surface border-b-2 border-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
+                    {TAB_LABELS[tabKey]}
                   </button>
                 ))}
               </div>
@@ -199,7 +202,7 @@ export function ProfileScreen() {
             ) : galleryPosts.length === 0 ? (
               <div className="text-center py-16 bg-surface-container-low rounded-3xl border-2 border-dashed border-outline-variant/20">
                 <p className="text-on-surface-variant text-sm font-medium">
-                  {tab === 'Saved' ? 'No saved posts yet. Bookmark posts to find them here.' : 'No posts yet. Start sharing!'}
+                  {tab === 'Saved' ? t.profile.emptySaved : t.profile.emptyPosts}
                 </p>
               </div>
             ) : (
@@ -227,8 +230,8 @@ export function ProfileScreen() {
                         onClick={(e) => {
                           e.stopPropagation()
                           unsavePost.mutate(String(post.id), {
-                            onSuccess: () => toast.success('Removed from saved'),
-                            onError: () => toast.error('Failed to unsave post'),
+                            onSuccess: () => toast.success(t.profile.removedFromSaved),
+                            onError: () => toast.error(t.profile.unsaveFailed),
                           })
                         }}
                         className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-error transition-all"

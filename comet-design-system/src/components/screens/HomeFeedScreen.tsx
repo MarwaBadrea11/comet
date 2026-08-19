@@ -14,6 +14,7 @@ import { useFeed, useCreatePost, useReactToPost, useSavePost, useHidePost } from
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { ReactionType } from '../../types'
 
 import { CreateStoryModal } from './CreateStoryModal'
@@ -26,6 +27,7 @@ export function HomeFeedScreen() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
+  const t = useTranslation()
 
   // ── States ────────────────────────────────────────────────────────────────
   const [newPostContent, setNewPostContent] = useState('')
@@ -179,11 +181,11 @@ export function HomeFeedScreen() {
   const handleSavePost = (postId: string) => {
     savePost.mutate(String(postId), {
       onSuccess: () => {
-        toast.success('Post saved successfully!')
+        toast.success(t.home.postSaved)
       },
       onError: (err: any) => {
         if (err.response?.status === 409) {
-          toast.warning('Post already saved')
+          toast.warning(t.home.postAlreadySaved)
         } else {
           toast.error('Failed to save post')
         }
@@ -196,7 +198,7 @@ export function HomeFeedScreen() {
       onSuccess: () => {
         // Remove from local state
         setAllLocalPosts(prev => prev.filter(p => String(p.id) !== String(postId)))
-        toast.success('Post hidden from your feed')
+        toast.success(t.home.postHidden)
       },
       onError: () => {
         toast.error('Failed to hide post')
@@ -208,7 +210,7 @@ export function HomeFeedScreen() {
     // Copy link to clipboard
     const link = `${window.location.origin}/post/${postId}`
     navigator.clipboard.writeText(link).then(() => {
-      toast.success('Link copied to clipboard!')
+      toast.success(t.home.linkCopied)
     }).catch(() => {
       toast.error('Failed to copy link')
     })
@@ -264,7 +266,7 @@ export function HomeFeedScreen() {
                       setIsCreatePostModalOpen(true)
                     }
                   }}
-                  placeholder="Share your celestial thoughts..."
+                  placeholder={t.home.createPlaceholder}
                   className="w-full bg-transparent border-none resize-none focus:outline-none text-on-surface placeholder-on-surface-variant/50 pt-1.5 min-h-[60px] md:min-h-[80px] text-sm md:text-base cursor-pointer"
                 />
               </div>
@@ -314,7 +316,7 @@ export function HomeFeedScreen() {
                   </div>
                 </div>
                 <Button type="submit" disabled={createPost.isPending || !newPostContent.trim()} className="px-4 md:px-6 h-9 md:h-11 rounded-xl shadow-md bg-gradient-to-r from-[#6B46C0] to-[#8E5EFF] text-white hover:opacity-90">
-                  {createPost.isPending ? 'Launching...' : 'Launch'}
+                  {createPost.isPending ? t.home.launching : t.home.launch}
                 </Button>
               </div>
             </form>
@@ -324,7 +326,7 @@ export function HomeFeedScreen() {
           {isLoading && posts.length === 0 && (
             <div className="text-center py-16 space-y-4">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-on-surface-variant font-semibold">Traversing the cosmos...</p>
+              <p className="text-xs text-on-surface-variant font-semibold">{t.home.loadingFeed}</p>
             </div>
           )}
 
@@ -332,7 +334,7 @@ export function HomeFeedScreen() {
           {isError && posts.length === 0 && (
             <div className="text-center py-16 space-y-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10">
               <p className="text-sm text-on-surface-variant font-medium">
-                {(error as any)?.response?.data?.message ?? 'Failed to load your feed.'}
+                {(error as any)?.response?.data?.message ?? t.home.errorLoadingFeed}
               </p>
               <Button variant="secondary" size="sm" onClick={() => refetch()}>Reload</Button>
             </div>
@@ -341,7 +343,7 @@ export function HomeFeedScreen() {
           {/* ── Empty State ── */}
           {!isLoading && !isError && posts.length === 0 && (
             <div className="text-center py-16 space-y-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/10">
-              <p className="text-sm text-on-surface-variant font-medium">No posts yet. Be the first to share something!</p>
+              <p className="text-sm text-on-surface-variant font-medium">{t.home.emptyFeed}</p>
             </div>
           )}
 
@@ -388,26 +390,26 @@ export function HomeFeedScreen() {
                               onClick={() => setEditingPostId(String(post.id))}
                               icon={<Edit size={16} />}
                             >
-                              Edit Post
+                              {t.home.editPost}
                             </DropdownMenu.Item>
                           )}
-                          <DropdownMenu.Item 
+                          <DropdownMenu.Item
                             onClick={() => handleSavePost(String(post.id))}
                             icon={<Bookmark size={16} />}
                           >
-                            Save Post
+                            {t.home.savePost}
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item 
+                          <DropdownMenu.Item
                             onClick={() => handleHidePost(String(post.id))}
                             icon={<EyeOff size={16} />}
                           >
-                            Hide Post
+                            {t.home.hidePost}
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item 
+                          <DropdownMenu.Item
                             onClick={() => handleSharePost(String(post.id))}
                             icon={<Share2 size={16} />}
                           >
-                            Share
+                            {t.home.sharePost}
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu>
@@ -501,7 +503,7 @@ export function HomeFeedScreen() {
                             })}
                           </div>
                           <form onSubmit={(e) => handleAddComment(e, String(post.id))} className="flex gap-2 items-center pt-2 border-t border-outline-variant/5">
-                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a cosmic comment..." className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 h-9 text-xs focus:outline-none focus:border-primary shadow-sm" />
+                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder={t.home.writeComment} className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 h-9 text-xs focus:outline-none focus:border-primary shadow-sm" />
                             <button type="submit" disabled={!commentText.trim()} className="p-2 bg-primary text-white rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"><Send size={14} /></button>
                           </form>
                         </motion.div>

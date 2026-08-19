@@ -94,10 +94,10 @@ export function OnboardingScreen() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="absolute -bottom-8 -right-8 bg-white/70 backdrop-blur-2xl p-6 rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] border border-outline-variant/15 max-w-xs"
+            className="absolute -bottom-8 -right-8 bg-surface-container-lowest/90 dark:bg-surface-container-low/90 backdrop-blur-2xl p-6 rounded-2xl shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-outline-variant/15 dark:border-outline-variant/5 max-w-xs"
           >
             <div className="flex items-center gap-4 mb-3">
-              <div className="w-10 h-10 rounded-full bg-[#00D4FF]/20 flex items-center justify-center text-[#00677e]">
+              <div className="w-10 h-10 rounded-full bg-[#00D4FF]/20 dark:bg-[#00D4FF]/30 flex items-center justify-center text-secondary dark:text-secondary">
                 <span className="material-symbols-outlined text-xl">hub</span>
               </div>
               <span className="font-headline font-bold text-sm">Active Nodes</span>

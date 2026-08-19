@@ -3,6 +3,7 @@ import { Loader2, Users, UserMinus, X } from 'lucide-react'
 import { Avatar } from './Avatar'
 import { useAvatarUrl } from './UserAvatar'
 import { useMyFriends, useUnfriend } from '../../hooks/useFriendshipQuery'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface FriendRow {
   id: string
@@ -12,6 +13,7 @@ interface FriendRow {
 }
 
 function FriendListItem({ friend }: { friend: FriendRow }) {
+  const t = useTranslation()
   const [confirming, setConfirming] = useState(false)
   const avatarSrc = useAvatarUrl({ name: friend.name, avatarMediaId: friend.avatarMediaId })
   const unfriend = useUnfriend()
@@ -30,13 +32,13 @@ function FriendListItem({ friend }: { friend: FriendRow }) {
             disabled={unfriend.isPending}
             className="text-xs font-bold text-white bg-error px-3 py-1.5 rounded-lg hover:opacity-90 disabled:opacity-50"
           >
-            {unfriend.isPending ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
+            {unfriend.isPending ? <Loader2 size={12} className="animate-spin" /> : t.common.confirm}
           </button>
           <button
             onClick={() => setConfirming(false)}
             className="text-xs font-bold text-on-surface-variant px-2 py-1.5"
           >
-            Cancel
+            {t.common.cancel}
           </button>
         </div>
       ) : (
@@ -53,6 +55,7 @@ function FriendListItem({ friend }: { friend: FriendRow }) {
 }
 
 export function FriendsListModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslation()
   const { data: friends = [], isLoading } = useMyFriends()
 
   return (
@@ -62,7 +65,7 @@ export function FriendsListModal({ onClose }: { onClose: () => void }) {
         <div className="bg-surface w-full max-w-sm rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[75vh] border border-outline-variant/15">
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10">
             <h2 className="font-headline text-lg font-bold text-on-surface">
-              Friends {!isLoading && `(${friends.length})`}
+              {t.friendsList.title} {!isLoading && `(${friends.length})`}
             </h2>
             <button onClick={onClose} className="p-1 hover:bg-surface-container-low rounded-full">
               <X size={18} />
@@ -81,7 +84,7 @@ export function FriendsListModal({ onClose }: { onClose: () => void }) {
                 <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-surface-container-highest flex items-center justify-center">
                   <Users className="w-7 h-7 text-on-surface-variant" />
                 </div>
-                <p className="text-sm text-on-surface-variant">No friends yet.</p>
+                <p className="text-sm text-on-surface-variant">{t.friendsList.noFriendsYet}</p>
               </div>
             )}
 

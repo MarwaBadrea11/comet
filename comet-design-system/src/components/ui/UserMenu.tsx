@@ -4,6 +4,7 @@ import { Sun, Moon, LogOut, ChevronDown, User, Settings } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useTheme } from '../../providers/ThemeProvider'
 import { useAuth } from '../../context/AuthContext'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface UserMenuProps {
   open: boolean
@@ -26,6 +27,7 @@ const dropdownVariants: Variants = {
 }
 
 export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuProps) {
+  const t = useTranslation()
   const { theme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
   const ref = useRef<HTMLDivElement>(null)
@@ -151,14 +153,14 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
               {/* Profile */}
               <MenuItem
                 icon={<User size={16} />}
-                label="View Profile"
+                label={t.userMenu.viewProfile}
                 onClick={handleProfile}
               />
 
               {/* Settings */}
               <MenuItem
                 icon={<Settings size={16} />}
-                label="Settings"
+                label={t.userMenu.settings}
                 onClick={handleSettings}
               />
 
@@ -181,7 +183,7 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
                     {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
                   </span>
                   <span className="text-sm font-medium">
-                    {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                    {theme === 'light' ? t.userMenu.darkMode : t.userMenu.lightMode}
                   </span>
                 </div>
 
@@ -222,7 +224,7 @@ export function UserMenu({ open, onToggle, onClose, user, className }: UserMenuP
                 <span className="w-7 h-7 rounded-lg bg-error-container/50 group-hover:bg-error-container flex items-center justify-center shrink-0 transition-colors">
                   <LogOut size={15} className="text-error" />
                 </span>
-                <span className="text-sm font-semibold">Sign Out</span>
+                <span className="text-sm font-semibold">{t.userMenu.signOut}</span>
               </div>
             </div>
           </motion.div>

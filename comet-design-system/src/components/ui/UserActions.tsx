@@ -5,6 +5,7 @@ import { useFriendshipStatus, useSendFriendRequest, useApproveFriendRequest, use
 import { useBlockUser, useUnblockUser, useIsBlocked } from '../../hooks/useBlockQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { DropdownMenu } from './DropdownMenu'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface UserActionsProps {
   userId: string
@@ -13,6 +14,7 @@ interface UserActionsProps {
 }
 
 export function UserActions({ userId, compact = false, onBlockComplete }: UserActionsProps) {
+  const t = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const [showConfirmBlock, setShowConfirmBlock] = useState(false)
   const [showConfirmUnfriend, setShowConfirmUnfriend] = useState(false)
@@ -101,7 +103,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           disabled={isProcessing}
           leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban size={16} />}
         >
-          Unblock
+          {t.userActions.unblock}
         </Button>
       </div>
     )
@@ -117,7 +119,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           disabled={isProcessing}
           leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban size={16} />}
         >
-          Confirm Block
+          {t.userActions.confirmBlock}
         </Button>
         <Button
           variant="ghost"
@@ -125,7 +127,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           onClick={() => setShowConfirmBlock(false)}
           disabled={isProcessing}
         >
-          Cancel
+          {t.userActions.cancel}
         </Button>
       </div>
     )
@@ -141,7 +143,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           disabled={isProcessing}
           leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserMinus size={16} />}
         >
-          Confirm Unfriend
+          {t.userActions.confirmUnfriend}
         </Button>
         <Button
           variant="ghost"
@@ -149,7 +151,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           onClick={() => setShowConfirmUnfriend(false)}
           disabled={isProcessing}
         >
-          Cancel
+          {t.userActions.cancel}
         </Button>
       </div>
     )
@@ -164,7 +166,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           leftIcon={<UserCheck size={16} />}
           disabled
         >
-          Friends
+          {t.userActions.friends}
         </Button>
         <DropdownMenu>
           <DropdownMenu.Trigger>
@@ -174,11 +176,11 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Item icon={<UserMinus size={16} />} onClick={handleUnfriend}>
-              Unfriend
+              {t.userActions.unfriendAction}
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item icon={<Ban size={16} />} onClick={() => setShowConfirmBlock(true)} variant="danger">
-              Block
+              {t.userActions.block}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu>
@@ -196,7 +198,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           disabled={isProcessing}
           leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck size={16} />}
         >
-          Accept
+          {t.userActions.accept}
         </Button>
         <Button
           variant="ghost"
@@ -204,7 +206,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           onClick={handleDecline}
           disabled={isProcessing}
         >
-          Decline
+          {t.userActions.decline}
         </Button>
         <DropdownMenu>
           <DropdownMenu.Trigger>
@@ -214,7 +216,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Item icon={<Ban size={16} />} onClick={() => setShowConfirmBlock(true)} variant="danger">
-              Block
+              {t.userActions.block}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu>
@@ -232,7 +234,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           disabled={isProcessing}
           leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock size={16} />}
         >
-          Request Sent
+          {t.userActions.requestSent}
         </Button>
         <DropdownMenu>
           <DropdownMenu.Trigger>
@@ -242,11 +244,11 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Item icon={<UserMinus size={16} />} onClick={handleCancelRequest}>
-              Cancel Request
+              {t.userActions.cancelRequest}
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item icon={<Ban size={16} />} onClick={() => setShowConfirmBlock(true)} variant="danger">
-              Block
+              {t.userActions.block}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu>
@@ -263,7 +265,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
         disabled={isProcessing}
         leftIcon={isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus size={16} />}
       >
-        Add Friend
+        {t.userActions.addFriend}
       </Button>
       <DropdownMenu>
         <DropdownMenu.Trigger>
@@ -273,7 +275,7 @@ export function UserActions({ userId, compact = false, onBlockComplete }: UserAc
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
           <DropdownMenu.Item icon={<Ban size={16} />} onClick={() => setShowConfirmBlock(true)} variant="danger">
-            Block
+            {t.userActions.block}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu>

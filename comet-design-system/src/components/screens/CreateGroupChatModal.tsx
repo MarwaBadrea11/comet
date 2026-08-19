@@ -20,6 +20,7 @@ import { toast } from '../ui/Toast'
 import { useMyFriends } from '../../hooks/useFriendsQuery'
 import { useCreateConversation } from '../../hooks/useMessagesQuery'
 import { useUploadMedia } from '../../hooks/useMediaQuery'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface CreateGroupChatModalProps {
   onClose: () => void
@@ -43,6 +44,7 @@ function ParticipantAvatar({
 }
 
 export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupChatModalProps) {
+  const t = useTranslation()
   // Form state
   const [groupName, setGroupName] = useState('')
   const [description, setDescription] = useState('')
@@ -88,13 +90,13 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB')
+      toast.error(t.createGroupModal.imageTooLarge)
       return
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
+      toast.error(t.createGroupModal.selectImageFile)
       return
     }
 
@@ -119,15 +121,15 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
     const newErrors: { name?: string; members?: string } = {}
 
     if (!groupName.trim()) {
-      newErrors.name = 'Group name is required'
+      newErrors.name = t.createGroupModal.nameRequired
     } else if (groupName.trim().length < 3) {
-      newErrors.name = 'Group name must be at least 3 characters'
+      newErrors.name = t.createGroupModal.nameTooShort
     } else if (groupName.trim().length > 50) {
-      newErrors.name = 'Group name must be less than 50 characters'
+      newErrors.name = t.createGroupModal.nameTooLong
     }
 
     if (selectedMembers.length === 0) {
-      newErrors.members = 'Select at least 1 member'
+      newErrors.members = t.createGroupModal.selectAtLeastOne
     }
 
     setErrors(newErrors)
@@ -146,7 +148,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
           const media = await uploadMedia.mutateAsync(avatarFile)
           avatarMediaId = media.id
         } catch (error) {
-          toast.error('Failed to upload group avatar')
+          toast.error(t.createGroupModal.avatarUploadFailed)
           return
         }
       }
@@ -162,18 +164,18 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
         },
         {
           onSuccess: (conversation) => {
-            toast.success('Group created successfully!')
+            toast.success(t.createGroupModal.groupCreated)
             onGroupCreated?.(conversation.id)
             onClose()
           },
           onError: (error: any) => {
-            const message = error?.response?.data?.message || 'Failed to create group'
+            const message = error?.response?.data?.message || t.createGroupModal.createFailed
             toast.error(message)
           },
         }
       )
     } catch (error) {
-      toast.error('An unexpected error occurred')
+      toast.error(t.createGroupModal.unexpectedError)
     }
   }
 
@@ -193,7 +195,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white w-full max-w-2xl rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[90vh]"
+          className="bg-surface-container-lowest w-full max-w-2xl rounded-[2rem] flex flex-col overflow-hidden shadow-2xl max-h-[90vh]"
         >
           {/* Header */}
           <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 shrink-0">
@@ -201,7 +203,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-[#00D4FF] flex items-center justify-center">
                 <Users size={20} className="text-white" />
               </div>
-              <h2 className="font-headline text-lg font-bold text-on-surface">Create Group Chat</h2>
+              <h2 className="font-headline text-lg font-bold text-on-surface">{t.createGroupModal.title}</h2>
             </div>
             <button 
               onClick={onClose} 
@@ -246,7 +248,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
                   className="text-sm font-semibold text-primary hover:underline"
                   disabled={isLoading}
                 >
-                  {avatarPreview ? 'Change Group Photo' : 'Add Group Photo'}
+                  {avatarPreview ? t.createGroupModal.changePhoto : t.createGroupModal.addPhoto}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -260,8 +262,8 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
               {/* Group Name */}
               <div>
                 <Input
-                  label="Group Name"
-                  placeholder="Enter group name"
+                  label={t.createGroupModal.groupNameLabel}
+                  placeholder={t.createGroupModal.groupNamePlaceholder}
                   value={groupName}
                   onChange={(e) => {
                     setGroupName(e.target.value)
@@ -272,33 +274,33 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
                   disabled={isLoading}
                 />
                 <p className="text-xs text-on-surface-variant mt-1 px-1">
-                  {groupName.length}/50 characters
+                  {groupName.length}/50 {t.createGroupModal.charactersCount}
                 </p>
               </div>
 
               {/* Description */}
               <div>
                 <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant px-1 block mb-1.5">
-                  Description (Optional)
+                  {t.createGroupModal.descriptionLabel}
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What's this group about?"
+                  placeholder={t.createGroupModal.descriptionPlaceholder}
                   maxLength={200}
                   rows={3}
                   disabled={isLoading}
                   className="w-full bg-surface-container-low rounded-2xl p-4 border-none outline-none font-body text-on-surface placeholder:text-outline/50 transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest resize-none"
                 />
                 <p className="text-xs text-on-surface-variant mt-1 px-1">
-                  {description.length}/200 characters
+                  {description.length}/200 {t.createGroupModal.charactersCount}
                 </p>
               </div>
 
               {/* Member Selection */}
               <div>
                 <label className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant px-1 block mb-3">
-                  Add Members {selectedMembers.length > 0 && `(${selectedMembers.length})`}
+                  {t.createGroupModal.addMembers} {selectedMembers.length > 0 && `(${selectedMembers.length})`}
                 </label>
 
                 {errors.members && (
@@ -309,7 +311,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
                 <div className="mb-4">
                   <Input
                     variant="search"
-                    placeholder="Search friends..."
+                    placeholder={t.createGroupModal.searchFriends}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     leadingIcon={<Search size={18} />}
@@ -327,7 +329,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
 
                   {!loadingFriends && filteredFriends.length === 0 && (
                     <p className="text-center text-sm text-on-surface-variant py-8">
-                      {searchQuery ? 'No friends found matching your search' : 'No friends to add'}
+                      {searchQuery ? t.createGroupModal.noFriendsMatching : t.createGroupModal.noFriendsToAdd}
                     </p>
                   )}
 
@@ -380,7 +382,7 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
                 disabled={isLoading}
                 className="flex-1 h-11 rounded-xl bg-surface-container text-on-surface font-bold hover:bg-surface-container-low transition-colors disabled:opacity-40"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleCreate}
@@ -390,12 +392,12 @@ export function CreateGroupChatModal({ onClose, onGroupCreated }: CreateGroupCha
                 {isLoading ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    Creating...
+                    {t.createGroupModal.creating}
                   </>
                 ) : (
                   <>
                     <Users size={16} />
-                    Create Group
+                    {t.createGroupModal.createGroup}
                   </>
                 )}
               </button>

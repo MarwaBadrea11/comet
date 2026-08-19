@@ -8,6 +8,7 @@ import { toast } from '../ui/Toast'
 import { useStoriesFeed, useDeleteStory } from '../../hooks/useStoriesQuery'
 import { getStoryMediaUrl } from '../../services/stories'
 import { useAuthStore } from '../../stores/authStore'
+import { useTranslation } from '../../hooks/useTranslation'
 
 const STORY_DURATION = 5000 // 5 seconds per story
 
@@ -22,6 +23,7 @@ interface DisplayStory {
 }
 
 export function StoriesScreen() {
+  const t = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const startAuthorId = (location.state as { startAuthorId?: string } | null)?.startAuthorId
@@ -123,11 +125,11 @@ export function StoriesScreen() {
   const handleDelete = () => {
     if (!isOwnStory) return
     
-    if (!confirm('Delete this story? This action cannot be undone.')) return
+    if (!confirm(t.storiesScreen.deleteConfirm)) return
 
     deleteStory.mutate(currentStory.id, {
       onSuccess: () => {
-        toast.success('Story deleted successfully')
+        toast.success(t.storiesScreen.deleted)
         handleNext()
       },
       onError: (err: any) => {
@@ -135,13 +137,13 @@ export function StoriesScreen() {
         const message = err.response?.data?.message || err.message
 
         if (status === 401) {
-          toast.error('Session expired. Please login again.')
+          toast.error(t.createStory.sessionExpired)
         } else if (status === 403) {
-          toast.error('You do not have permission to delete this story.')
+          toast.error(t.storiesScreen.noPermissionDelete)
         } else if (status === 404) {
-          toast.error('Story not found or already deleted.')
+          toast.error(t.storiesScreen.notFoundOrDeleted)
         } else {
-          toast.error(message || 'Failed to delete story. Please try again.')
+          toast.error(message || t.storiesScreen.deleteFailed)
         }
       },
     })
@@ -152,13 +154,13 @@ export function StoriesScreen() {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-[200]">
         <div className="text-center space-y-4 max-w-md px-6">
-          <p className="text-white/60 text-lg">Failed to load stories</p>
-          <p className="text-white/40 text-sm">{(error as any)?.message || 'An error occurred'}</p>
+          <p className="text-white/60 text-lg">{t.storiesScreen.failedToLoad}</p>
+          <p className="text-white/40 text-sm">{(error as any)?.message || t.storiesScreen.errorOccurred}</p>
           <button
             onClick={handleClose}
             className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
           >
-            Go Back
+            {t.storiesScreen.goBack}
           </button>
         </div>
       </div>
@@ -170,12 +172,12 @@ export function StoriesScreen() {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-[200]">
         <div className="text-center space-y-4">
-          <p className="text-white/60 text-lg">No stories yet</p>
+          <p className="text-white/60 text-lg">{t.storiesScreen.noStoriesYet}</p>
           <button
             onClick={handleClose}
             className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
           >
-            Go Back
+            {t.storiesScreen.goBack}
           </button>
         </div>
       </div>
@@ -227,10 +229,10 @@ export function StoriesScreen() {
             />
             <div>
               <h3 className="font-bold text-white text-sm drop-shadow-lg">
-                {currentStory?.user?.name || 'Anonymous'}
+                {currentStory?.user?.name || t.storiesScreen.anonymous}
               </h3>
               <p className="text-white/70 text-xs drop-shadow-md">
-                {currentStory?.createdAt ? new Date(currentStory.createdAt).toLocaleDateString() : 'Recent'}
+                {currentStory?.createdAt ? new Date(currentStory.createdAt).toLocaleDateString() : t.storiesScreen.recent}
               </p>
             </div>
           </div>
@@ -292,7 +294,7 @@ export function StoriesScreen() {
               /* Text Story with Gradient Background */
               <div className="w-full h-full bg-gradient-to-br from-[#6B46C0] via-[#8E5EFF] to-[#00D4FF] flex items-center justify-center p-8">
                 <p className="text-white text-2xl md:text-3xl font-bold text-center leading-relaxed drop-shadow-2xl">
-                  {currentStory?.content || 'No content'}
+                  {currentStory?.content || t.storiesScreen.noContent}
                 </p>
               </div>
             )}

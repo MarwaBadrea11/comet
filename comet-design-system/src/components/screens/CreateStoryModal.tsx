@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import { toast } from '../ui/Toast'
 import { motionVariants } from '../../lib/theme'
 import { useUploadStory } from '../../hooks/useStoriesQuery'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { StoryVisibility } from '../../types'
 
 interface Props {
@@ -16,13 +17,15 @@ interface Props {
 // Stories always expire after 24 hours — not user-configurable.
 const STORY_DURATION_HOURS = 24
 
-const visibilityOptions: Array<{ value: StoryVisibility; label: string; icon: typeof Globe }> = [
-  { value: 'PUBLIC', label: 'Public', icon: Globe },
-  { value: 'FRIENDS', label: 'Friends', icon: Users },
-  { value: 'ONLY_ME', label: 'Only Me', icon: Lock },
-]
-
 export function CreateStoryModal({ open, onClose, onCreated }: Props) {
+  const t = useTranslation()
+
+  const visibilityOptions: Array<{ value: StoryVisibility; label: string; icon: typeof Globe }> = [
+    { value: 'PUBLIC', label: t.createStory.visibilityPublic, icon: Globe },
+    { value: 'FRIENDS', label: t.createStory.visibilityFriends, icon: Users },
+    { value: 'ONLY_ME', label: t.createStory.visibilityOnlyMe, icon: Lock },
+  ]
+
   const [content, setContent] = useState('')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState('')
@@ -39,7 +42,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
 
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm']
     if (!validTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload an image or video.')
+      toast.error(t.createStory.invalidFileType)
       return
     }
 
@@ -54,7 +57,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
 
   const handlePublishStory = async () => {
     if (!content.trim() && !mediaFile) {
-      toast.error('Please add content or media to your story')
+      toast.error(t.createStory.addContentWarning)
       return
     }
 
@@ -73,7 +76,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
 
     uploadStory.mutate(formData, {
       onSuccess: () => {
-        toast.success('Story published! It will be visible for 24 hours.')
+        toast.success(t.createStory.published)
         resetForm()
         onClose()
         onCreated?.()
@@ -83,15 +86,15 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
         const message = err.response?.data?.message || err.message
 
         if (status === 400) {
-          toast.error(message || 'Invalid story content. Please check your input.')
+          toast.error(message || t.createStory.invalidContent)
         } else if (status === 401) {
-          toast.error('Session expired. Please login again.')
+          toast.error(t.createStory.sessionExpired)
         } else if (status === 403) {
-          toast.error('You do not have permission to create stories.')
+          toast.error(t.createStory.noPermission)
         } else if (status === 404) {
-          toast.error('Story endpoint not found.')
+          toast.error(t.createStory.endpointNotFound)
         } else {
-          toast.error('Failed to publish story. Please try again.')
+          toast.error(t.createStory.publishFailed)
         }
       },
     })
@@ -127,7 +130,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
 
               <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10">
                 <h2 className="font-headline text-lg font-bold text-on-surface">
-                  Create Story
+                  {t.createStory.title}
                 </h2>
                 <button onClick={handleClose} className="p-1 hover:bg-surface-container-low rounded-full transition-colors">
                   <X size={18} className="text-on-surface-variant" />
@@ -139,7 +142,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                 {uploadStory.isPending ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-xs text-on-surface-variant">Publishing your story...</p>
+                    <p className="text-xs text-on-surface-variant">{t.createStory.publishing}</p>
                   </div>
                 ) : mediaPreview ? (
                   <div className="relative w-full h-[280px] rounded-2xl overflow-hidden group">
@@ -167,7 +170,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                       onChange={e => setContent(e.target.value)}
                       maxLength={150}
                       className="w-full bg-transparent border-none resize-none focus:ring-0 text-center text-xl font-bold placeholder-on-surface-variant/40 text-on-surface outline-none"
-                      placeholder="Type your status..."
+                      placeholder={t.createStory.statusPlaceholder}
                     />
                     <span className="absolute bottom-3 right-3 text-[10px] text-on-surface-variant/60 font-medium">
                       {content.length}/150
@@ -179,8 +182,8 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
               {/* Visibility — duration is fixed at 24h, not user-configurable */}
               <div className="px-6 py-3 bg-surface-container-low/60 border-y border-outline-variant/10">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-on-surface-variant font-medium">Visibility</span>
-                  <span className="text-xs text-on-surface-variant font-medium">Expires in 24h</span>
+                  <span className="text-xs text-on-surface-variant font-medium">{t.createStory.visibilityLabel}</span>
+                  <span className="text-xs text-on-surface-variant font-medium">{t.createStory.expiresIn24h}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {visibilityOptions.map(({ value, label, icon: Icon }) => (
@@ -207,7 +210,7 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                   className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-30"
                 >
                   <ImageIcon size={18} />
-                  <span>Upload Media</span>
+                  <span>{t.createStory.uploadMedia}</span>
                 </button>
                 <input
                   type="file"
@@ -222,9 +225,9 @@ export function CreateStoryModal({ open, onClose, onCreated }: Props) {
                   disabled={uploadStory.isPending || (!content.trim() && !mediaFile)}
                   className="px-5 h-10 rounded-xl bg-primary text-white font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-transform"
                 >
-                  {uploadStory.isPending ? 'Sharing...' : (
+                  {uploadStory.isPending ? t.createStory.sharing : (
                     <>
-                      <span>Share Now</span>
+                      <span>{t.createStory.shareNow}</span>
                       <Send size={14} />
                     </>
                   )}

@@ -12,6 +12,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useMyProfile } from '../../hooks/useUserQuery'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   open: boolean
@@ -20,19 +21,20 @@ interface Props {
   onUpdated?: () => void
 }
 
-const VISIBILITY_OPTIONS = [
-  { value: 'PUBLIC' as const, label: 'Universal', description: 'Visible to every curator in the galaxy.', icon: <Globe size={18} /> },
-  { value: 'FRIENDS' as const, label: 'Inner Circle', description: 'Only shared with your trusted satellite groups.', icon: <Users size={18} /> },
-  { value: 'ONLY_ME' as const, label: 'Private Drift', description: 'Stored in your personal archive only.', icon: <Lock size={18} /> },
-]
-
-type Visibility = typeof VISIBILITY_OPTIONS[number]['value']
+type Visibility = 'PUBLIC' | 'FRIENDS' | 'ONLY_ME'
 
 export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
+  const t = useTranslation()
   const queryClient = useQueryClient()
   const user = useAuthStore(s => s.user)
   const { data: profile } = useMyProfile()
-  
+
+  const VISIBILITY_OPTIONS = [
+    { value: 'PUBLIC' as const, label: t.createPost.visibilityUniversal, description: t.createPost.visibilityUniversalDesc, icon: <Globe size={18} /> },
+    { value: 'FRIENDS' as const, label: t.createPost.visibilityInnerCircle, description: t.createPost.visibilityInnerCircleDesc, icon: <Users size={18} /> },
+    { value: 'ONLY_ME' as const, label: t.createPost.visibilityPrivate, description: t.createPost.visibilityPrivateDesc, icon: <Lock size={18} /> },
+  ]
+
   // Fetch the existing post data
   const { data: post, isLoading: isLoadingPost } = usePost(postId)
   const updatePost = useUpdatePost()
@@ -111,10 +113,10 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
       
       if (uploadedIds.length > 0) {
         setMediaIds(prev => [...prev, ...uploadedIds])
-        toast.success(`${uploadedIds.length} file(s) uploaded successfully`)
+        toast.success(`${uploadedIds.length} ${t.createPost.filesUploaded}`)
       }
     } catch (err) {
-      toast.error('Upload failed. Please try again.')
+      toast.error(t.createPost.uploadFailedGeneric)
     } finally {
       setIsUploading(false)
     }
@@ -127,7 +129,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
 
   const handleUpdatePost = () => {
     if (!content.trim() && mediaIds.length === 0) {
-      toast.warning('Please add some content or media before updating')
+      toast.warning(t.createPost.needContentWarningUpdate)
       return
     }
     
@@ -143,7 +145,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
       },
       {
         onSuccess: () => {
-          toast.success('Post updated successfully!')
+          toast.success(t.createPost.postUpdated)
           
           // Update local storage if this is a local post
           const saved = localStorage.getItem('comet_global_local_posts')
@@ -167,13 +169,13 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
         },
         onError: (err: any) => {
           if (err.response?.status === 403) {
-            toast.error('You do not have permission to edit this post')
+            toast.error(t.createPost.permissionDenied)
           } else if (err.response?.status === 404) {
-            toast.error('Post not found')
+            toast.error(t.createPost.postNotFound)
           } else if (err.response?.status === 400) {
-            toast.error('Invalid post content or settings')
+            toast.error(t.createPost.invalidPostSettings)
           } else {
-            toast.error('Failed to update post. Please try again.')
+            toast.error(t.createPost.updateFailed)
           }
         }
       }
@@ -188,7 +190,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
           <motion.div {...motionVariants.scaleIn} className="fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8">
             <div className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-[2rem] flex flex-col overflow-visible border border-outline-variant/15">
               <div className="px-10 py-8 flex items-center justify-between border-b border-outline-variant/10">
-                <h2 className="font-headline text-2xl font-bold text-on-surface">Edit Cosmic Thread</h2>
+                <h2 className="font-headline text-2xl font-bold text-on-surface">{t.createPost.editTitle}</h2>
                 <button onClick={onClose} className="p-2 hover:bg-surface-variant/10 rounded-xl transition-colors">
                   <X size={20} />
                 </button>
@@ -198,7 +200,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
                 <div className="flex-1 flex items-center justify-center py-16">
                   <div className="text-center space-y-4">
                     <Loader2 size={32} className="animate-spin mx-auto text-primary" />
-                    <p className="text-sm text-on-surface-variant font-medium">Loading post...</p>
+                    <p className="text-sm text-on-surface-variant font-medium">{t.createPost.loadingPost}</p>
                   </div>
                 </div>
               ) : (
@@ -208,13 +210,13 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
                       value={content}
                       onChange={e => setContent(e.target.value)}
                       className="w-full h-32 bg-transparent border-none resize-none focus:ring-0 text-lg p-4"
-                      placeholder="What's happening in your corner of the universe?"
+                      placeholder={t.createPost.placeholder}
                     />
                     
                     {/* Existing Media Preview */}
                     {existingMedia.length > 0 && (
                       <div className="mt-6 space-y-3">
-                        <h4 className="text-sm font-bold text-on-surface">Current Media</h4>
+                        <h4 className="text-sm font-bold text-on-surface">{t.createPost.currentMedia}</h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {existingMedia.map((media) => (
                             <div key={media.id} className="relative group">
@@ -237,7 +239,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
 
                     {/* File Upload Dropzone */}
                     <div className="mt-6">
-                      <h4 className="text-sm font-bold text-on-surface mb-3">Add New Media</h4>
+                      <h4 className="text-sm font-bold text-on-surface mb-3">{t.createPost.addNewMedia}</h4>
                       <FileDropzone
                         onFilesSelected={handleFilesSelected}
                         maxSize={50 * 1024 * 1024}
@@ -282,7 +284,7 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
                     {/* Visibility Picker */}
                     {showVisibilityPicker && (
                       <div className="mt-6 p-4 bg-surface-container rounded-xl border border-outline-variant/15">
-                        <h4 className="text-sm font-bold text-on-surface mb-4">Who can see this post?</h4>
+                        <h4 className="text-sm font-bold text-on-surface mb-4">{t.createPost.whoCanSee}</h4>
                         <SegmentedControlVertical
                           value={visibility}
                           onChange={(val) => setVisibility(val as Visibility)}
@@ -294,23 +296,23 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
                     {/* Additional Fields */}
                     <div className="mt-6 space-y-4">
                       <div>
-                        <label className="block text-sm font-bold text-on-surface mb-2">Feeling/Activity (Optional)</label>
+                        <label className="block text-sm font-bold text-on-surface mb-2">{t.createPost.feelingLabel}</label>
                         <input
                           type="text"
                           value={feeling}
                           onChange={(e) => setFeeling(e.target.value)}
-                          placeholder="e.g., happy, excited, traveling"
+                          placeholder={t.createPost.feelingPlaceholder}
                           className="w-full px-4 py-2 bg-surface-container border border-outline-variant/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
-                      
+
                       <div>
-                        <label className="block text-sm font-bold text-on-surface mb-2">Location (Optional)</label>
+                        <label className="block text-sm font-bold text-on-surface mb-2">{t.createPost.locationLabel}</label>
                         <input
                           type="text"
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
-                          placeholder="e.g., Damascus, Syria"
+                          placeholder={t.createPost.locationPlaceholder}
                           className="w-full px-4 py-2 bg-surface-container border border-outline-variant/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -322,13 +324,13 @@ export function EditPostModal({ open, onClose, postId, onUpdated }: Props) {
                       onClick={onClose} 
                       className="text-on-surface-variant hover:text-on-surface transition-colors"
                     >
-                      Cancel
+                      {t.common.cancel}
                     </button>
-                    <Button 
-                      onClick={handleUpdatePost} 
+                    <Button
+                      onClick={handleUpdatePost}
                       disabled={updatePost.isPending || isUploading}
                     >
-                      {updatePost.isPending ? 'Updating...' : 'Save Changes'}
+                      {updatePost.isPending ? t.createPost.saving : t.createPost.saveChanges}
                     </Button>
                   </div>
                 </>

@@ -8,8 +8,10 @@ import { toast } from '../ui/Toast'
 import { useMe, useUpdateProfile } from '../../hooks/useUserQuery'
 import { mediaService } from '../../services/media'
 import type { UpdateProfileRequest } from '../../services/user'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export function EditProfileScreen() {
+  const t = useTranslation()
   const navigate = useNavigate()
   const { data: profile, isLoading } = useMe()
   const updateProfile = useUpdateProfile()
@@ -66,14 +68,14 @@ export function EditProfileScreen() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file')
+      toast.error(t.editProfile.invalidImageFile)
       return
     }
 
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      toast.error('Image size must be less than 10MB')
+      toast.error(t.editProfile.imageTooLarge10)
       return
     }
 
@@ -91,7 +93,7 @@ export function EditProfileScreen() {
     }
     reader.onerror = () => {
       console.error('❌ FileReader error')
-      toast.error('Failed to read image file')
+      toast.error(t.editProfile.readImageFailed)
     }
     reader.readAsDataURL(file)
 
@@ -101,12 +103,12 @@ export function EditProfileScreen() {
       console.log('⬆️ Uploading avatar to server...')
       const media = await mediaService.upload(file)
       console.log('✅ Avatar upload successful:', media)
-      
+
       setFormData(prev => ({ ...prev, avatarMediaId: media.id }))
-      toast.success('Avatar uploaded successfully')
+      toast.success(t.editProfile.avatarUploaded)
     } catch (error: any) {
       console.error('❌ Avatar upload failed:', error)
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload avatar'
+      const errorMessage = error?.response?.data?.message || error?.message || t.editProfile.avatarUploadFailed
       toast.error(errorMessage)
       setAvatarPreview(null)
     } finally {
@@ -122,14 +124,14 @@ export function EditProfileScreen() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file')
+      toast.error(t.editProfile.invalidImageFile)
       return
     }
 
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      toast.error('Image size must be less than 10MB')
+      toast.error(t.editProfile.imageTooLarge10)
       return
     }
 
@@ -147,7 +149,7 @@ export function EditProfileScreen() {
     }
     reader.onerror = () => {
       console.error('❌ FileReader error')
-      toast.error('Failed to read image file')
+      toast.error(t.editProfile.readImageFailed)
     }
     reader.readAsDataURL(file)
 
@@ -157,12 +159,12 @@ export function EditProfileScreen() {
       console.log('⬆️ Uploading cover to server...')
       const media = await mediaService.upload(file)
       console.log('✅ Cover upload successful:', media)
-      
+
       setFormData(prev => ({ ...prev, coverMediaId: media.id }))
-      toast.success('Cover photo uploaded successfully')
+      toast.success(t.editProfile.coverUploaded)
     } catch (error: any) {
       console.error('❌ Cover upload failed:', error)
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload cover photo'
+      const errorMessage = error?.response?.data?.message || error?.message || t.editProfile.coverUploadFailed
       toast.error(errorMessage)
       setCoverPreview(null)
     } finally {
@@ -188,12 +190,12 @@ export function EditProfileScreen() {
 
     // Validation
     if (!formData.name?.trim()) {
-      toast.error('Name is required')
+      toast.error(t.editProfile.nameRequired)
       return
     }
 
     if (!formData.username?.trim()) {
-      toast.error('Username is required')
+      toast.error(t.editProfile.usernameRequired)
       return
     }
 
@@ -207,12 +209,12 @@ export function EditProfileScreen() {
     updateProfile.mutate(formData, {
       onSuccess: (data) => {
         console.log('✅ Profile update successful:', data)
-        toast.success('Profile updated successfully!')
+        toast.success(t.editProfile.profileUpdated)
         navigate('/profile')
       },
       onError: (error: any) => {
         console.error('❌ Profile update failed:', error)
-        const message = error?.response?.data?.message || error?.message || 'Failed to update profile'
+        const message = error?.response?.data?.message || error?.message || t.editProfile.updateFailed
         toast.error(message)
       },
     })
@@ -240,8 +242,8 @@ export function EditProfileScreen() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold font-headline">Edit Profile</h1>
-              <p className="text-sm text-on-surface-variant">Update your profile information</p>
+              <h1 className="text-xl font-bold font-headline">{t.editProfile.title}</h1>
+              <p className="text-sm text-on-surface-variant">{t.editProfile.subtitle}</p>
             </div>
           </div>
           <Button
@@ -252,7 +254,7 @@ export function EditProfileScreen() {
             disabled={updateProfile.isPending}
             isLoading={updateProfile.isPending}
           >
-            Save
+            {t.editProfile.save}
           </Button>
         </div>
       </div>
@@ -266,11 +268,11 @@ export function EditProfileScreen() {
             className="space-y-4"
           >
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-semibold text-on-surface">Cover Photo</label>
+              <label className="block text-sm font-semibold text-on-surface">{t.editProfile.coverPhoto}</label>
               {isUploadingCover && (
                 <span className="text-xs text-primary font-medium flex items-center gap-2">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Uploading...
+                  {t.editProfile.uploading}
                 </span>
               )}
             </div>
@@ -286,7 +288,7 @@ export function EditProfileScreen() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <Upload className="w-12 h-12 text-on-surface-variant/50 mx-auto mb-2" />
-                    <p className="text-sm text-on-surface-variant">Click to upload cover photo</p>
+                    <p className="text-sm text-on-surface-variant">{t.editProfile.clickToUploadCover}</p>
                   </div>
                 </div>
               )}
@@ -325,7 +327,7 @@ export function EditProfileScreen() {
               disabled={isUploadingCover}
             />
             <p className="text-xs text-on-surface-variant">
-              Recommended: 1500x500px • Max size: 10MB • JPG, PNG, GIF
+              {t.editProfile.coverHint}
             </p>
           </motion.div>
 
@@ -337,11 +339,11 @@ export function EditProfileScreen() {
             className="space-y-4"
           >
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-semibold text-on-surface">Profile Picture</label>
+              <label className="block text-sm font-semibold text-on-surface">{t.editProfile.profilePicture}</label>
               {isUploadingAvatar && (
                 <span className="text-xs text-primary font-medium flex items-center gap-2">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Uploading...
+                  {t.editProfile.uploading}
                 </span>
               )}
             </div>
@@ -376,7 +378,7 @@ export function EditProfileScreen() {
                   disabled={isUploadingAvatar}
                   isLoading={isUploadingAvatar}
                 >
-                  {isUploadingAvatar ? 'Uploading...' : 'Upload Photo'}
+                  {isUploadingAvatar ? t.editProfile.uploading : t.editProfile.uploadPhoto}
                 </Button>
                 {(avatarPreview || profile?.avatarMedia) && !isUploadingAvatar && (
                   <Button
@@ -385,11 +387,11 @@ export function EditProfileScreen() {
                     size="sm"
                     onClick={handleRemoveAvatar}
                   >
-                    Remove
+                    {t.editProfile.remove}
                   </Button>
                 )}
                 <p className="text-xs text-on-surface-variant">
-                  Square image • Max 10MB
+                  {t.editProfile.avatarHint}
                 </p>
               </div>
             </div>
@@ -413,7 +415,7 @@ export function EditProfileScreen() {
             {/* Name */}
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm font-semibold text-on-surface">
-                Name <span className="text-error">*</span>
+                {t.editProfile.nameLabel} <span className="text-error">*</span>
               </label>
               <input
                 type="text"
@@ -423,14 +425,14 @@ export function EditProfileScreen() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                placeholder="Your full name"
+                placeholder={t.editProfile.namePlaceholder}
               />
             </div>
 
             {/* Username */}
             <div className="space-y-2">
               <label htmlFor="username" className="block text-sm font-semibold text-on-surface">
-                Username <span className="text-error">*</span>
+                {t.editProfile.usernameLabel} <span className="text-error">*</span>
               </label>
               <input
                 type="text"
@@ -440,14 +442,14 @@ export function EditProfileScreen() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                placeholder="@username"
+                placeholder={t.editProfile.usernamePlaceholder}
               />
             </div>
 
             {/* Bio */}
             <div className="space-y-2">
               <label htmlFor="bio" className="block text-sm font-semibold text-on-surface">
-                Bio
+                {t.editProfile.bioLabel}
               </label>
               <textarea
                 id="bio"
@@ -456,10 +458,10 @@ export function EditProfileScreen() {
                 onChange={handleChange}
                 rows={4}
                 className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
-                placeholder="Tell us about yourself..."
+                placeholder={t.editProfile.bioPlaceholder}
               />
               <p className="text-xs text-on-surface-variant">
-                {formData.bio?.length || 0} / 160 characters
+                {formData.bio?.length || 0} {t.editProfile.charactersOf160}
               </p>
             </div>
 
@@ -468,7 +470,7 @@ export function EditProfileScreen() {
               {/* City */}
               <div className="space-y-2">
                 <label htmlFor="city" className="block text-sm font-semibold text-on-surface">
-                  City
+                  {t.editProfile.cityLabel}
                 </label>
                 <input
                   type="text"
@@ -477,14 +479,14 @@ export function EditProfileScreen() {
                   value={formData.city}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder="Damascus"
+                  placeholder={t.editProfile.cityPlaceholder}
                 />
               </div>
 
               {/* Country */}
               <div className="space-y-2">
                 <label htmlFor="country" className="block text-sm font-semibold text-on-surface">
-                  Country
+                  {t.editProfile.countryLabel}
                 </label>
                 <input
                   type="text"
@@ -493,7 +495,7 @@ export function EditProfileScreen() {
                   value={formData.country}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder="Syria"
+                  placeholder={t.editProfile.countryPlaceholder}
                 />
               </div>
             </div>
@@ -501,7 +503,7 @@ export function EditProfileScreen() {
             {/* Gender */}
             <div className="space-y-2">
               <label htmlFor="gender" className="block text-sm font-semibold text-on-surface">
-                Gender
+                {t.editProfile.genderLabel}
               </label>
               <select
                 id="gender"
@@ -510,10 +512,10 @@ export function EditProfileScreen() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 bg-surface-container-high rounded-2xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
               >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                <option value="MALE">{t.editProfile.genderMale}</option>
+                <option value="FEMALE">{t.editProfile.genderFemale}</option>
+                <option value="OTHER">{t.editProfile.genderOther}</option>
+                <option value="PREFER_NOT_TO_SAY">{t.editProfile.genderPreferNotToSay}</option>
               </select>
             </div>
           </motion.div>
@@ -532,7 +534,7 @@ export function EditProfileScreen() {
               onClick={() => navigate('/profile')}
               className="flex-1"
             >
-              Cancel
+              {t.editProfile.cancel}
             </Button>
             <Button
               type="submit"
@@ -542,7 +544,7 @@ export function EditProfileScreen() {
               isLoading={updateProfile.isPending}
               className="flex-1"
             >
-              Save Changes
+              {t.editProfile.saveChanges}
             </Button>
           </motion.div>
         </form>

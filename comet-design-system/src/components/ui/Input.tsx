@@ -24,12 +24,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={cn(
-              'w-full border-none outline-none font-body text-on-surface placeholder:text-outline/50',
+              'w-full border-none outline-none font-body text-on-surface placeholder:text-on-surface-variant/50 dark:placeholder:text-on-surface-variant/40',
               'transition-all duration-300',
-              'focus:ring-2 focus:ring-primary/20',
+              'focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30',
               isSearch
-                ? 'bg-surface-container-lowest shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.25)] rounded-full py-3.5 focus:ring-2'
-                : 'bg-surface-container-low rounded-2xl py-3.5 focus:bg-surface-container-lowest',
+                ? 'bg-surface-container-lowest dark:bg-surface-container-high/60 shadow-[0_20px_40px_rgba(107,70,192,0.06)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.25)] rounded-full py-3.5 focus:ring-2'
+                : 'bg-surface-container-low dark:bg-surface-container-high/50 rounded-2xl py-3.5 focus:bg-surface-container-lowest dark:focus:bg-surface-container-high/70',
               leadingIcon ? 'pl-12' : 'pl-5',
               trailingIcon ? 'pr-12' : 'pr-5',
               error && 'ring-2 ring-error/40',

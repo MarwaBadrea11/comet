@@ -13,6 +13,7 @@ import { usePostComments, useCreateComment } from '../../hooks/useCommentsQuery'
 import { useMe } from '../../hooks/useUserQuery'
 import { useAuthStore } from '../../stores/authStore'
 import { EditPostModal } from './EditPostModal'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { ReactionType } from '../../types'
 
 // Comment authors only carry avatarMediaId (no nested avatarMedia object) —
@@ -23,6 +24,7 @@ function CommentAvatar({ name, avatarMediaId, className }: { name?: string; avat
 }
 
 export function PostDetailScreen() {
+  const t = useTranslation()
   const navigate = useNavigate()
   const { id }   = useParams<{ id: string }>()
   const user     = useAuthStore(s => s.user)
@@ -106,15 +108,15 @@ export function PostDetailScreen() {
     if (!post) return
     if (isSaved) {
       unsavePost.mutate(String(post.id), {
-        onSuccess: () => toast.success('Removed from saved'),
-        onError: () => toast.error('Failed to unsave post'),
+        onSuccess: () => toast.success(t.postDetail.removedFromSaved),
+        onError: () => toast.error(t.postDetail.unsaveFailed),
       })
     } else {
       savePost.mutate(String(post.id), {
-        onSuccess: () => toast.success('Post saved!'),
+        onSuccess: () => toast.success(t.postDetail.postSaved),
         onError: (err: any) => {
-          if (err.response?.status === 409) toast.warning('Post already saved')
-          else toast.error('Failed to save post')
+          if (err.response?.status === 409) toast.warning(t.postDetail.postAlreadySaved)
+          else toast.error(t.postDetail.saveFailed)
         },
       })
     }
@@ -200,7 +202,7 @@ export function PostDetailScreen() {
       }).catch(() => {})
     } else {
       navigator.clipboard.writeText(postUrl)
-      alert("Cosmic link copied to clipboard! 🌌")
+      alert(t.postDetail.linkCopiedAlert)
     }
   }
 
@@ -255,8 +257,8 @@ export function PostDetailScreen() {
   if ((isError || !post) && !localPost) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="text-on-surface-variant font-medium">{(error as any)?.response?.data?.message ?? 'Post not found.'}</p>
-        <Button variant="secondary" onClick={() => navigate(-1)}>Go Back</Button>
+        <p className="text-on-surface-variant font-medium">{(error as any)?.response?.data?.message ?? t.postDetail.postNotFound}</p>
+        <Button variant="secondary" onClick={() => navigate(-1)}>{t.postDetail.goBack}</Button>
       </div>
     )
   }
@@ -269,7 +271,7 @@ export function PostDetailScreen() {
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-container-low rounded-full transition-colors">
           <ArrowLeft size={20} className="text-primary" />
         </button>
-        <span className="text-sm font-medium text-on-surface-variant">Back to Feed</span>
+        <span className="text-sm font-medium text-on-surface-variant">{t.postDetail.backToFeed}</span>
       </div>
 
       {/* Post card */}
@@ -316,18 +318,18 @@ export function PostDetailScreen() {
                             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mb-1"
                           >
                             <Edit size={16} />
-                            Edit Post
+                            {t.postDetail.editPost}
                           </button>
                           <button
                             onClick={() => { setShowMenu(false); handleDeletePost(); }}
                             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                           >
                             <Trash2 size={16} />
-                            Delete Post
+                            {t.postDetail.deletePost}
                           </button>
                         </>
                       ) : (
-                        <p className="text-xs text-on-surface-variant p-2 text-center">No actions available</p>
+                        <p className="text-xs text-on-surface-variant p-2 text-center">{t.postDetail.noActionsAvailable}</p>
                       )}
                     </motion.div>
                   </>
@@ -361,7 +363,7 @@ export function PostDetailScreen() {
 
             {[
               { icon: <MessageCircle size={20} />, label: String(comments?.length ?? 0), action: () => {} },
-              { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
+              { icon: <Share2 size={20} />, label: t.postDetail.share, action: handleShare },
             ].map((a, i) => (
               <button key={i} onClick={a.action} className="flex items-center gap-2 group cursor-pointer transition-colors text-on-surface-variant hover:text-primary">
                 <div className="h-9 w-9 md:h-10 md:w-10 flex items-center justify-center rounded-full bg-surface-container-low group-hover:bg-primary/10 transition-colors">{a.icon}</div>
@@ -381,7 +383,7 @@ export function PostDetailScreen() {
                     : <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />
                 }
               >
-                {isSaved ? 'Saved' : 'Save'}
+                {isSaved ? t.postDetail.saved : t.postDetail.save}
               </Button>
             </div>
           </div>
@@ -395,7 +397,7 @@ export function PostDetailScreen() {
           <textarea
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
-            placeholder="Add your thoughts to the cosmos..."
+            placeholder={t.postDetail.addThoughtsPlaceholder}
             className="flex-1 bg-transparent border-none resize-none focus:ring-0 text-sm outline-none min-h-[40px] max-h-24"
             rows={1}
           />
@@ -407,13 +409,13 @@ export function PostDetailScreen() {
 
       {/* Comments section */}
       <section>
-        <h3 className="text-2xl md:text-3xl font-extrabold font-headline text-on-surface tracking-tight mb-6 md:mb-8">The Conversation</h3>
+        <h3 className="text-2xl md:text-3xl font-extrabold font-headline text-on-surface tracking-tight mb-6 md:mb-8">{t.postDetail.theConversation}</h3>
 
         {loadingComments && comments.length === 0 ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>
         ) : comments.length === 0 ? (
           <div className="text-center py-12 text-on-surface-variant text-sm bg-surface-container-low rounded-2xl border-2 border-dashed border-outline-variant/20">
-            No comments yet. Be the first to contribute!
+            {t.postDetail.noComments}
           </div>
         ) : (
           <div className="bg-surface-container-low rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 space-y-6 md:space-y-8">
@@ -428,7 +430,7 @@ export function PostDetailScreen() {
                     <CommentAvatar name={c.user?.name} avatarMediaId={c.user?.avatarMediaId} className="rounded-2xl shrink-0" />
                     <div className="flex-1 bg-surface-container-lowest p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-white/20">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-on-surface text-sm">{c.user?.name ?? 'Anonymous'}</span>
+                        <span className="font-bold text-on-surface text-sm">{c.user?.name ?? t.postDetail.anonymous}</span>
                         {c.createdAt && <span className="text-[10px] text-on-surface-variant">{new Date(c.createdAt).toLocaleDateString()}</span>}
                       </div>
                       <p className="text-on-surface-variant leading-relaxed text-sm">{c.content}</p>
@@ -439,17 +441,17 @@ export function PostDetailScreen() {
                           onClick={() => handleLikeComment(c.id)}
                           className={`text-xs font-bold flex items-center gap-1 transition-colors ${hasLikedComment ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
                         >
-                          <ThumbsUp size={13} fill={hasLikedComment ? 'currentColor' : 'none'} /> 
-                          Like {commentLikes.length > 0 && `(${commentLikes.length})`}
+                          <ThumbsUp size={13} fill={hasLikedComment ? 'currentColor' : 'none'} />
+                          {t.postDetail.like} {commentLikes.length > 0 && `(${commentLikes.length})`}
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setReplyingToCommentId(replyingToCommentId === c.id ? null : c.id)
                             setReplyText('')
                           }}
                           className="text-on-surface-variant text-xs font-bold hover:text-primary transition-colors"
                         >
-                          Reply
+                          {t.postDetail.reply}
                         </button>
                       </div>
                     </div>
@@ -488,7 +490,7 @@ export function PostDetailScreen() {
                             type="text"
                             value={replyText}
                             onChange={e => setReplyText(e.target.value)}
-                            placeholder={`Reply to ${c.user?.name}...`}
+                            placeholder={t.postDetail.replyToPlaceholder.replace('{name}', c.user?.name ?? '')}
                             className="flex-1 bg-transparent border-none text-xs outline-none px-2 py-1"
                             onKeyDown={e => { if(e.key === 'Enter') handleAddReply(c.id) }}
                           />
